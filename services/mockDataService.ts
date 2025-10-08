@@ -37,6 +37,7 @@ const schools: School[] = schoolNames.map((name, index) => ({
 
 const users: User[] = [
   { id: 'user-1', name: 'Admin User', email: 'admin@deped.gov.ph', role: UserRole.ADMIN },
+  { id: 'user-kyle', name: 'Kyle Brent', email: 'kylebrent11@gmail.com', role: UserRole.ADMIN },
   { id: 'user-2', name: 'Moderator User', email: 'moderator@deped.gov.ph', role: UserRole.MODERATOR, assignedReportIds: ['report-1', 'report-3'] },
   { id: 'user-3', name: 'Alpaco Contact 1', email: 'contact1@deped.gov.ph', schoolName: 'Alpaco Elementary School', role: UserRole.SCHOOL },
   { id: 'user-4', name: 'Alpaco Contact 2', email: 'contact2@deped.gov.ph', schoolName: 'Alpaco Elementary School', role: UserRole.SCHOOL },

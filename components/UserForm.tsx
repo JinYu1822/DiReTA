@@ -57,8 +57,8 @@ const UserForm: React.FC<UserFormProps> = ({ userToEdit, onSave, onCancel, schoo
             setError('Please fill in all required fields: Name, Email, and Role.');
             return false;
         }
-        if (!formData.email.endsWith('@deped.gov.ph')) {
-            setError('Email must be a valid @deped.gov.ph account.');
+        if (!/^\S+@\S+\.\S+$/.test(formData.email)) {
+            setError('Please enter a valid email address.');
             return false;
         }
         const isEmailTaken = existingUsers.some(user => user.email === formData.email && user.id !== formData.id);
@@ -91,7 +91,7 @@ const UserForm: React.FC<UserFormProps> = ({ userToEdit, onSave, onCancel, schoo
                     </div>
                      <div>
                         <label className="block text-sm font-medium text-gray-700">Email Address</label>
-                        <input type="email" name="email" value={formData.email} onChange={handleChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3" placeholder="user@deped.gov.ph" required/>
+                        <input type="email" name="email" value={formData.email} onChange={handleChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3" placeholder="user@example.com" required/>
                     </div>
                     <div>
                          <label className="block text-sm font-medium text-gray-700">Role</label>
