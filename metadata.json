@@ -1,0 +1,5 @@
+{
+  "name": "Division Report Tracker",
+  "description": "A comprehensive dashboard for tracking school report submissions, analyzing compliance rates, and automating alerts. It provides role-based access for Admins, Moderators, and individual School users.",
+  "requestFramePermissions": []
+}
