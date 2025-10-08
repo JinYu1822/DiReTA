@@ -72,7 +72,7 @@ const submissions: Submission[] = [
 const simulateApi = <T,>(data: T): Promise<T> =>
   new Promise((resolve) => setTimeout(() => resolve(data), 500));
 
-export const getMockUsers = () => simulateApi(users);
-export const getMockSchools = () => simulateApi(schools);
-export const getMockReports = () => simulateApi(reports);
-export const getMockSubmissions = () => simulateApi(submissions);
+export const getUsers = () => simulateApi(users);
+export const getSchools = () => simulateApi(schools);
+export const getReports = () => simulateApi(reports);
+export const getSubmissions = () => simulateApi(submissions);

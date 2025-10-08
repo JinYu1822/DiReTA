@@ -130,7 +130,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentUser, data, onSu
     { id: 'dashboard', label: 'Dashboard', roles: [UserRole.ADMIN, UserRole.MODERATOR] },
     { id: 'tagging', label: 'Report Tagging Tool', roles: [UserRole.ADMIN, UserRole.MODERATOR] },
     { id: 'userManagement', label: 'User Management', roles: [UserRole.ADMIN] },
-    { id: 'settings', label: 'Settings', roles: [UserRole.ADMIN] }
+    { id: 'automation', label: 'Automation', roles: [UserRole.ADMIN] }
   ];
 
   const tabs = availableTabs.filter(tab => tab.roles.includes(currentUser.role));
@@ -152,7 +152,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentUser, data, onSu
                     reports={reports}
                     onUsersUpdate={onUsersUpdate} 
                /> : null;
-      case 'settings':
+      case 'automation':
         return <EmailAutomationSimulator data={data} />;
       case 'dashboard':
       default:

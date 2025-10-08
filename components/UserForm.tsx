@@ -32,16 +32,22 @@ const UserForm: React.FC<UserFormProps> = ({ userToEdit, onSave, onCancel, schoo
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
-        setFormData(prev => ({ ...prev, [name]: value }));
         
-        // Reset assignments when role changes
-        if(name === 'role') {
-            setFormData(prev => ({ ...prev, schoolName: value === UserRole.SCHOOL ? schools[0]?.name : '', assignedReportIds: [] }));
-        }
+        // FIX: Combined two setFormData calls into one to prevent race conditions.
+        setFormData(prev => {
+            const newState = { ...prev, [name]: value };
+            // Reset assignments when role changes
+            if(name === 'role') {
+                newState.schoolName = value === UserRole.SCHOOL ? (schools[0]?.name || '') : '';
+                newState.assignedReportIds = [];
+            }
+            return newState;
+        });
     };
 
     const handleReportSelection = (e: React.ChangeEvent<HTMLSelectElement>) => {
-        const selectedIds = Array.from(e.target.selectedOptions, option => option.value);
+        // FIX: Explicitly type 'option' to resolve TypeScript inference issue. The error "Property 'value' does not exist on type 'unknown'" points to this line.
+        const selectedIds = Array.from(e.target.selectedOptions, (option: HTMLOptionElement) => option.value);
         setFormData(prev => ({...prev, assignedReportIds: selectedIds }));
     };
 

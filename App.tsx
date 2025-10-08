@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { User, UserRole, School, Report, Submission } from './types';
-import { getMockUsers, getMockSchools, getMockReports, getMockSubmissions } from './services/mockDataService';
+import { getUsers, getSchools, getReports, getSubmissions } from './services/mockDataService';
 import LoginScreen from './components/LoginScreen';
 import AdminDashboard from './components/AdminDashboard';
 import SchoolDashboard from './components/SchoolDashboard';
@@ -21,10 +21,10 @@ const App: React.FC = () => {
     setError(null);
     try {
       const [fetchedUsers, fetchedSchools, fetchedReports, fetchedSubmissions] = await Promise.all([
-        getMockUsers(),
-        getMockSchools(),
-        getMockReports(),
-        getMockSubmissions(),
+        getUsers(),
+        getSchools(),
+        getReports(),
+        getSubmissions(),
       ]);
       setUsers(fetchedUsers);
       setSchools(fetchedSchools);
