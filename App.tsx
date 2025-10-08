@@ -30,6 +30,18 @@ const App: React.FC = () => {
       setSchools(fetchedSchools);
       setReports(fetchedReports);
       setSubmissions(fetchedSubmissions);
+
+      // Check for logged in user in sessionStorage
+      const loggedInUserId = sessionStorage.getItem('loggedInUserId');
+      if (loggedInUserId) {
+          const user = fetchedUsers.find((u) => u.id === loggedInUserId);
+          if (user) {
+              setCurrentUser(user);
+          } else {
+              // If user is not found (e.g., deleted), clear session
+              sessionStorage.removeItem('loggedInUserId');
+          }
+      }
     } catch (err) {
       setError('Failed to load application data.');
       console.error(err);
@@ -45,11 +57,13 @@ const App: React.FC = () => {
   const handleLogin = (userId: string) => {
     const user = users.find((u) => u.id === userId);
     if (user) {
+      sessionStorage.setItem('loggedInUserId', user.id);
       setCurrentUser(user);
     }
   };
 
   const handleLogout = () => {
+    sessionStorage.removeItem('loggedInUserId');
     setCurrentUser(null);
   };
 

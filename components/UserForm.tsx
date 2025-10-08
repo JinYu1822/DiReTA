@@ -97,17 +97,19 @@ const UserForm: React.FC<UserFormProps> = ({ userToEdit, onSave, onCancel, schoo
     };
 
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white p-8 rounded-lg shadow-xl w-full max-w-lg">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-start sm:items-center justify-center z-50 overflow-y-auto p-4">
+            <div className="bg-white p-6 sm:p-8 rounded-lg shadow-xl w-full max-w-lg">
                 <h3 className="text-xl font-medium mb-6">{userToEdit ? 'Edit User' : 'Add New User'}</h3>
                 <form onSubmit={handleSubmit} className="space-y-4">
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700">Full Name</label>
-                        <input type="text" name="name" value={formData.name} onChange={handleChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3" required/>
-                    </div>
-                     <div>
-                        <label className="block text-sm font-medium text-gray-700">Email Address</label>
-                        <input type="email" name="email" value={formData.email} onChange={handleChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3" placeholder="user@example.com" required/>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700">Full Name</label>
+                            <input type="text" name="name" value={formData.name} onChange={handleChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3" required/>
+                        </div>
+                         <div>
+                            <label className="block text-sm font-medium text-gray-700">Email Address</label>
+                            <input type="email" name="email" value={formData.email} onChange={handleChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3" placeholder="user@example.com" required/>
+                        </div>
                     </div>
                     <div>
                          <label className="block text-sm font-medium text-gray-700">Role</label>
@@ -135,13 +137,15 @@ const UserForm: React.FC<UserFormProps> = ({ userToEdit, onSave, onCancel, schoo
                     <hr className="my-2" />
                     <p className="text-sm text-gray-500">{userToEdit ? 'Leave password fields blank to keep the current password.' : 'Set a password for the new user.'}</p>
                     
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700">Password</label>
-                        <input type="password" name="password" value={password} onChange={e => setPassword(e.target.value)} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3" autoComplete="new-password" />
-                    </div>
-                     <div>
-                        <label className="block text-sm font-medium text-gray-700">Confirm Password</label>
-                        <input type="password" name="confirmPassword" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3" autoComplete="new-password" />
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700">Password</label>
+                            <input type="password" name="password" value={password} onChange={e => setPassword(e.target.value)} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3" autoComplete="new-password" />
+                        </div>
+                         <div>
+                            <label className="block text-sm font-medium text-gray-700">Confirm Password</label>
+                            <input type="password" name="confirmPassword" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3" autoComplete="new-password" />
+                        </div>
                     </div>
 
 
