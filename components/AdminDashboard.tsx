@@ -264,7 +264,23 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentUser, data, onSu
       </div>
 
       <div className="border-b border-gray-200">
-        <nav className="-mb-px flex space-x-6" aria-label="Tabs">
+        {/* Mobile view: Dropdown */}
+        <div className="sm:hidden">
+            <label htmlFor="tabs" className="sr-only">Select a tab</label>
+            <select
+                id="tabs"
+                name="tabs"
+                className="block w-full rounded-md border-gray-300 focus:border-brand-blue focus:ring-brand-blue"
+                value={activeTab}
+                onChange={(e) => setActiveTab(e.target.value)}
+            >
+                {tabs.map(tab => (
+                    <option key={tab.id} value={tab.id}>{tab.label}</option>
+                ))}
+            </select>
+        </div>
+        {/* Desktop view: Tabs */}
+        <nav className="-mb-px hidden sm:flex sm:space-x-6" aria-label="Tabs">
           {tabs.map(tab => (
             <button
               key={tab.id}
