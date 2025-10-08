@@ -1,23 +1,24 @@
+
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { AppData, Submission, StoredComplianceStatus, Report, User, UserRole } from '../types';
 import { PencilSquareIcon } from './icons/DashboardIcons';
-import { saveSubmissionsBatch, saveReport } from '../services/firebaseService';
 
 
 interface ReportTaggingToolProps {
     currentUser: User;
     data: AppData;
+    onSubmissionsUpdate: (updatedSubmissions: Submission[]) => void;
+    onReportsUpdate: (updatedReports: Report[]) => void;
 }
 
 interface SchoolStatusUpdate {
     schoolId: string;
-    schoolName: string;
     status: StoredComplianceStatus | '';
     submissionDate: string;
     remarks: string;
 }
 
-const ReportTaggingTool: React.FC<ReportTaggingToolProps> = ({ currentUser, data }) => {
+const ReportTaggingTool: React.FC<ReportTaggingToolProps> = ({ currentUser, data, onSubmissionsUpdate, onReportsUpdate }) => {
     const { schools, reports, submissions } = data;
 
     const visibleReports = useMemo(() => {
@@ -31,7 +32,6 @@ const ReportTaggingTool: React.FC<ReportTaggingToolProps> = ({ currentUser, data
     const [schoolStatuses, setSchoolStatuses] = useState<SchoolStatusUpdate[]>([]);
     const [initialSchoolStatuses, setInitialSchoolStatuses] = useState<SchoolStatusUpdate[]>([]);
     const [lastUpdatedTimestamps, setLastUpdatedTimestamps] = useState<{ [schoolId: string]: number }>({});
-    const [isSaving, setIsSaving] = useState(false);
     
     const [isReportModalOpen, setIsReportModalOpen] = useState(false);
     const [editingReport, setEditingReport] = useState<Report | null>(null);
@@ -60,7 +60,6 @@ const ReportTaggingTool: React.FC<ReportTaggingToolProps> = ({ currentUser, data
                 const submission = submissions.find(s => s.schoolId === school.id && s.reportId === selectedReportId);
                 return {
                     schoolId: school.id,
-                    schoolName: school.name,
                     status: submission?.status || '',
                     submissionDate: submission?.submissionDate || new Date().toISOString().split('T')[0],
                     remarks: submission?.remarks || ''
@@ -86,44 +85,59 @@ const ReportTaggingTool: React.FC<ReportTaggingToolProps> = ({ currentUser, data
         );
     };
 
-    const handleSave = async () => {
-        setIsSaving(true);
-        const updatesToSave = schoolStatuses.filter((current, index) => 
-            JSON.stringify(current) !== JSON.stringify(initialSchoolStatuses[index])
-        );
+    const handleSave = () => {
+        const updatedSubmissions = [...submissions];
+        const changedSchoolIds: string[] = [];
 
-        if (updatesToSave.length === 0) {
-            setIsSaving(false);
-            return;
-        }
+        schoolStatuses.forEach(update => {
+            const initial = initialSchoolStatuses.find(s => s.schoolId === update.schoolId);
+            if (JSON.stringify(update) === JSON.stringify(initial)) {
+                return; // No change for this school
+            }
 
-        try {
-            await saveSubmissionsBatch(updatesToSave, selectedReportId);
-            setInitialSchoolStatuses(JSON.parse(JSON.stringify(schoolStatuses))); // Resync initial state
-            
-            const now = Date.now();
-            const newTimestamps = { ...lastUpdatedTimestamps };
-            updatesToSave.forEach(update => {
-                newTimestamps[update.schoolId] = now;
-                 if (hideTimestampTimeoutRef.current[update.schoolId]) {
-                    clearTimeout(hideTimestampTimeoutRef.current[update.schoolId]);
+            changedSchoolIds.push(update.schoolId);
+            const existingIndex = updatedSubmissions.findIndex(s => s.schoolId === update.schoolId && s.reportId === selectedReportId);
+
+            if (update.status) { // Add or update submission
+                const newSubmission: Submission = {
+                    schoolId: update.schoolId,
+                    reportId: selectedReportId,
+                    status: update.status as StoredComplianceStatus,
+                    submissionDate: update.status === 'Submitted' ? update.submissionDate : null,
+                    remarks: update.remarks,
+                };
+                if (existingIndex !== -1) {
+                    updatedSubmissions[existingIndex] = newSubmission;
+                } else {
+                    updatedSubmissions.push(newSubmission);
                 }
-                hideTimestampTimeoutRef.current[update.schoolId] = window.setTimeout(() => {
-                    setLastUpdatedTimestamps(prev => {
-                        const freshTimestamps = { ...prev };
-                        delete freshTimestamps[update.schoolId];
-                        return freshTimestamps;
-                    });
-                }, 3600000); // 1 hour
-            });
-            setLastUpdatedTimestamps(newTimestamps);
-            
-        } catch (error) {
-            console.error("Failed to save submissions:", error);
-            alert("An error occurred while saving. Please check the console and try again.");
-        } finally {
-            setIsSaving(false);
-        }
+            } else if (existingIndex !== -1) { // Remove submission
+                updatedSubmissions.splice(existingIndex, 1);
+            }
+        });
+
+        onSubmissionsUpdate(updatedSubmissions);
+        setInitialSchoolStatuses(JSON.parse(JSON.stringify(schoolStatuses))); // Resync initial state
+
+        const now = Date.now();
+        const newTimestamps = { ...lastUpdatedTimestamps };
+        changedSchoolIds.forEach(schoolId => {
+            newTimestamps[schoolId] = now;
+
+            // Clear any existing timeout for this school
+            if (hideTimestampTimeoutRef.current[schoolId]) {
+                clearTimeout(hideTimestampTimeoutRef.current[schoolId]);
+            }
+            // Set a new timeout to hide the "Updated" message after 1 hour
+            hideTimestampTimeoutRef.current[schoolId] = window.setTimeout(() => {
+                setLastUpdatedTimestamps(prev => {
+                    const freshTimestamps = { ...prev };
+                    delete freshTimestamps[schoolId];
+                    return freshTimestamps;
+                });
+            }, 3600000); // 1 hour
+        });
+        setLastUpdatedTimestamps(newTimestamps);
     };
 
     const handleOpenAddModal = () => {
@@ -146,30 +160,28 @@ const ReportTaggingTool: React.FC<ReportTaggingToolProps> = ({ currentUser, data
         }
     };
     
-    const handleSaveReport = async () => {
+    const handleSaveReport = () => {
         if (!reportFormData.title || !reportFormData.focalPerson || !reportFormData.deadline || !reportFormData.modeOfSubmission) {
             alert('Please fill out all fields for the report.');
             return;
         }
-        
-        try {
-            let reportToSave: Partial<Report> & {id?: string} = { ...reportFormData };
-            if (editingReport) {
-                reportToSave.id = editingReport.id;
-            }
-            const savedReport = await saveReport(reportToSave as Report);
-            
-            if (!editingReport) { // If it was a new report
-                setSelectedReportId(savedReport.id);
-            }
 
-            alert(`Report ${editingReport ? 'updated' : 'added'} successfully!`);
-            setIsReportModalOpen(false);
-            setEditingReport(null);
-        } catch (error) {
-            console.error("Error saving report:", error);
-            alert("Failed to save the report. Please try again.");
+        if (editingReport) { // Update existing report
+            const updatedReport: Report = { ...editingReport, ...reportFormData };
+            onReportsUpdate(reports.map(r => r.id === editingReport.id ? updatedReport : r));
+            alert('Report updated successfully!');
+        } else { // Add new report
+            const newReportData: Report = {
+                id: `report-${new Date().getTime()}`,
+                ...reportFormData
+            };
+            onReportsUpdate([...reports, newReportData]);
+            setSelectedReportId(newReportData.id);
+            alert('New report added successfully!');
         }
+        
+        setIsReportModalOpen(false);
+        setEditingReport(null);
     };
 
     const selectedReport = reports.find(r => r.id === selectedReportId);
@@ -228,10 +240,12 @@ const ReportTaggingTool: React.FC<ReportTaggingToolProps> = ({ currentUser, data
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
                         {schoolStatuses.map((status) => {
+                            const school = schools.find(s => s.id === status.schoolId);
                             const isUpdated = !!lastUpdatedTimestamps[status.schoolId];
+
                             return (
-                            <tr key={status.schoolId}>
-                                <td className="px-4 py-3 font-medium text-gray-900">{status.schoolName}</td>
+                            <tr key={school?.id}>
+                                <td className="px-4 py-3 font-medium text-gray-900">{school?.name}</td>
                                 <td className="px-4 py-3 text-center">
                                     {isUpdated && (
                                         <span className="text-xs font-semibold text-green-600">
@@ -277,11 +291,10 @@ const ReportTaggingTool: React.FC<ReportTaggingToolProps> = ({ currentUser, data
                 <div className="fixed bottom-0 left-0 right-0 bg-white p-4 shadow-[0_-2px_5px_rgba(0,0,0,0.1)] border-t border-gray-200 flex justify-center items-center z-40">
                     <div className="max-w-7xl w-full flex justify-end px-4 sm:px-6 lg:px-8">
                          <button 
-                            onClick={handleSave}
-                            disabled={isSaving}
-                            className="bg-brand-blue text-white px-8 py-2 rounded-md hover:bg-brand-blue-light font-semibold transition-colors disabled:bg-gray-400 disabled:cursor-wait"
+                            onClick={handleSave} 
+                            className="bg-brand-blue text-white px-8 py-2 rounded-md hover:bg-brand-blue-light font-semibold transition-colors"
                          >
-                            {isSaving ? 'Saving...' : 'Save Changes'}
+                            Save Changes
                         </button>
                     </div>
                 </div>

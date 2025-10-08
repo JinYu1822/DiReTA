@@ -1,9 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { User as AppUser, UserRole, AppData } from './types';
-import { auth, getAppData, signOutGoogle, signInWithGoogle, db } from './services/firebaseService';
-import { onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
-import { doc, onSnapshot } from 'firebase/firestore';
-
+import React, { useState, useEffect, useCallback } from 'react';
+import { User, UserRole, School, Report, Submission } from './types';
+import { getMockUsers, getMockSchools, getMockReports, getMockSubmissions } from './services/mockDataService';
 import LoginScreen from './components/LoginScreen';
 import AdminDashboard from './components/AdminDashboard';
 import SchoolDashboard from './components/SchoolDashboard';
@@ -11,58 +8,64 @@ import Header from './components/Header';
 import Spinner from './components/Spinner';
 
 const App: React.FC = () => {
-  const [firebaseUser, setFirebaseUser] = useState<FirebaseUser | null>(null);
-  const [currentUser, setCurrentUser] = useState<AppUser | null>(null);
-  const [appData, setAppData] = useState<AppData>({ users: [], schools: [], reports: [], submissions: [] });
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [users, setUsers] = useState<User[]>([]);
+  const [schools, setSchools] = useState<School[]>([]);
+  const [reports, setReports] = useState<Report[]>([]);
+  const [submissions, setSubmissions] = useState<Submission[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [authChecked, setAuthChecked] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      setFirebaseUser(user);
-      if (user) {
-        // User is signed in, now get their app-specific profile
-        const userDocRef = doc(db, "users", user.uid);
-        onSnapshot(userDocRef, (doc) => {
-             if (doc.exists()) {
-                const appUser = { id: doc.id, ...doc.data() } as AppUser;
-                setCurrentUser(appUser);
-            } else {
-                // This user signed in with Google but is not in our users collection.
-                setError("Access Denied. Your email is not registered for this application.");
-                setCurrentUser(null);
-                signOutGoogle();
-            }
-        });
-      } else {
-        setCurrentUser(null);
-      }
-      setAuthChecked(true);
-    });
-    return () => unsubscribe();
+  const fetchData = useCallback(async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const [fetchedUsers, fetchedSchools, fetchedReports, fetchedSubmissions] = await Promise.all([
+        getMockUsers(),
+        getMockSchools(),
+        getMockReports(),
+        getMockSubmissions(),
+      ]);
+      setUsers(fetchedUsers);
+      setSchools(fetchedSchools);
+      setReports(fetchedReports);
+      setSubmissions(fetchedSubmissions);
+    } catch (err) {
+      setError('Failed to load application data.');
+      console.error(err);
+    } finally {
+      setIsLoading(false);
+    }
   }, []);
 
   useEffect(() => {
-    if (currentUser) {
-      setIsLoading(true);
-      getAppData()
-        .then(data => {
-            setAppData(data);
-            setError(null);
-        })
-        .catch(err => {
-            console.error("Failed to fetch app data:", err);
-            setError("Could not load application data. Please try again later.");
-        })
-        .finally(() => setIsLoading(false));
-    } else {
-      setIsLoading(false); // Not logged in, no data to load
+    fetchData();
+  }, [fetchData]);
+
+  const handleLogin = (userId: string) => {
+    const user = users.find((u) => u.id === userId);
+    if (user) {
+      setCurrentUser(user);
     }
-  }, [currentUser]);
+  };
 
+  const handleLogout = () => {
+    setCurrentUser(null);
+  };
 
-  if (!authChecked) {
+  const updateSubmissions = (updatedSubmissions: Submission[]) => {
+    setSubmissions(updatedSubmissions);
+  };
+
+  const updateUsers = (updatedUsers: User[]) => {
+    setUsers(updatedUsers);
+  };
+  
+  const updateReports = (updatedReports: Report[]) => {
+    setReports(updatedReports);
+  };
+
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <Spinner />
@@ -70,33 +73,30 @@ const App: React.FC = () => {
     );
   }
 
+  if (error) {
+    return <div className="text-red-500 text-center mt-10">{error}</div>;
+  }
+
   if (!currentUser) {
-    return <LoginScreen onLogin={signInWithGoogle} error={error} />;
+    return <LoginScreen users={users} onLogin={handleLogin} />;
   }
   
-  // While currentUser is set, data might still be loading
-  if (isLoading) {
-     return (
-       <div className="min-h-screen bg-gray-100">
-         <Header user={currentUser} onLogout={signOutGoogle} />
-         <div className="flex items-center justify-center p-8">
-           <Spinner />
-         </div>
-       </div>
-     );
-  }
+  const data = { users, schools, reports, submissions };
 
   return (
     <div className="min-h-screen bg-gray-100">
-      <Header user={currentUser} onLogout={signOutGoogle} />
+      <Header user={currentUser} onLogout={handleLogout} />
       <main className="p-4 sm:p-6 lg:p-8">
         {currentUser.role === UserRole.ADMIN || currentUser.role === UserRole.MODERATOR ? (
           <AdminDashboard 
             currentUser={currentUser} 
-            data={appData} 
+            data={data} 
+            onSubmissionsUpdate={updateSubmissions}
+            onUsersUpdate={updateUsers}
+            onReportsUpdate={updateReports}
           />
         ) : (
-          <SchoolDashboard currentUser={currentUser} data={appData} />
+          <SchoolDashboard currentUser={currentUser} data={data} />
         )}
       </main>
     </div>

@@ -2,17 +2,16 @@ import React, { useState } from 'react';
 import { User, School, Report, UserRole } from '../types';
 import UserForm from './UserForm';
 import { UserPlusIcon, PencilSquareIcon, TrashIcon } from './icons/DashboardIcons';
-import { saveUser, deleteUser } from '../services/firebaseService';
-
 
 interface UserManagementProps {
     currentUser: User;
     users: User[];
     schools: School[];
     reports: Report[];
+    onUsersUpdate: (updatedUsers: User[]) => void;
 }
 
-const UserManagement: React.FC<UserManagementProps> = ({ currentUser, users, schools, reports }) => {
+const UserManagement: React.FC<UserManagementProps> = ({ currentUser, users, schools, reports, onUsersUpdate }) => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingUser, setEditingUser] = useState<User | null>(null);
 
@@ -26,7 +25,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ currentUser, users, sch
         setIsModalOpen(true);
     };
 
-    const handleDeleteUser = async (userId: string) => {
+    const handleDeleteUser = (userId: string) => {
         if (userId === currentUser.id) {
             alert("You cannot remove your own account.");
             return;
@@ -47,26 +46,18 @@ const UserManagement: React.FC<UserManagementProps> = ({ currentUser, users, sch
         }
 
         if (window.confirm(`Are you sure you want to remove the user "${userToDelete.name}"? This action cannot be undone.`)) {
-            try {
-                await deleteUser(userId);
-                alert('User removed successfully.');
-            } catch (error) {
-                console.error("Error removing user:", error);
-                alert('Failed to remove user. Please try again.');
-            }
+            onUsersUpdate(users.filter(u => u.id !== userId));
         }
     };
 
-    const handleSaveUser = async (userToSave: User) => {
-        try {
-            await saveUser(userToSave);
-            setIsModalOpen(false);
-            setEditingUser(null);
-            alert(`User ${editingUser ? 'updated' : 'added'} successfully.`);
-        } catch (error) {
-            console.error("Error saving user: ", error);
-            alert('Failed to save user. Please check the console for details.');
+    const handleSaveUser = (userToSave: User) => {
+        if (editingUser) {
+            onUsersUpdate(users.map(u => u.id === userToSave.id ? userToSave : u));
+        } else {
+            onUsersUpdate([...users, { ...userToSave, id: `user-${new Date().getTime()}` }]);
         }
+        setIsModalOpen(false);
+        setEditingUser(null);
     };
 
 

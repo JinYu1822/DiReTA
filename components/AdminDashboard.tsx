@@ -12,9 +12,12 @@ import { getDisplayStatus } from '../utils/complianceUtils';
 interface AdminDashboardProps {
   currentUser: User;
   data: AppData;
+  onSubmissionsUpdate: (updatedSubmissions: Submission[]) => void;
+  onUsersUpdate: (updatedUsers: User[]) => void;
+  onReportsUpdate: (updatedReports: Report[]) => void;
 }
 
-const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentUser, data }) => {
+const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentUser, data, onSubmissionsUpdate, onUsersUpdate, onReportsUpdate }) => {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [isPromptSubmittersOpen, setIsPromptSubmittersOpen] = useState(false);
   const [isFrequentLateOpen, setIsFrequentLateOpen] = useState(false);
@@ -44,12 +47,10 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentUser, data }) =>
         
         if (status === DisplayComplianceStatus.SUBMITTED_ON_TIME) {
           onTimeCount++;
-        // FIX: Corrected typo from OVERDUCE to OVERDUE.
         } else if (status === DisplayComplianceStatus.SUBMITTED_LATE || status === DisplayComplianceStatus.OVERDUE) {
           lateOrOverdueCount++;
         }
 
-        // FIX: Corrected typo from OVERDUCE to OVERDUE.
         if (status === DisplayComplianceStatus.OVERDUE) {
             const deadline = new Date(report.deadline);
             if (now > deadline) {
@@ -140,6 +141,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentUser, data }) =>
         return <ReportTaggingTool 
                   currentUser={currentUser}
                   data={data} 
+                  onSubmissionsUpdate={onSubmissionsUpdate}
+                  onReportsUpdate={onReportsUpdate}
                />;
       case 'userManagement':
         return currentUser.role === UserRole.ADMIN ? <UserManagement 
@@ -147,6 +150,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentUser, data }) =>
                     users={users} 
                     schools={schools}
                     reports={reports}
+                    onUsersUpdate={onUsersUpdate} 
                /> : null;
       case 'settings':
         return <EmailAutomationSimulator data={data} />;
