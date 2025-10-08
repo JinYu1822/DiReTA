@@ -1,4 +1,5 @@
 
+
 import React, { useState, useMemo } from 'react';
 import { AppData, Submission, DisplayComplianceStatus } from '../types';
 import { CheckCircleIcon, XCircleIcon, ClockIcon, DocumentMinusIcon, ExclamationTriangleIcon } from './icons/StatusIcons';
@@ -33,6 +34,19 @@ const StatusCell: React.FC<{ status: DisplayComplianceStatus }> = ({ status }) =
 const ComplianceTable: React.FC<ComplianceTableProps> = ({ data, performanceData, getDisplayStatus }) => {
   const { schools, reports, submissions } = data;
   const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'ascending' | 'descending' }>({ key: 'schoolName', direction: 'ascending' });
+
+  const activeReports = useMemo(() => {
+    return reports.filter(report => {
+        // A report is considered "active" and should be displayed if at least one school
+        // has a status of Pending or Overdue for it.
+        const isStillActive = schools.some(school => {
+            const submission = submissions.find(s => s.schoolId === school.id && s.reportId === report.id);
+            const status = getDisplayStatus(submission, report.deadline);
+            return status === DisplayComplianceStatus.PENDING || status === DisplayComplianceStatus.OVERDUE;
+        });
+        return isStillActive;
+    });
+  }, [reports, schools, submissions, getDisplayStatus]);
 
   const requestSort = (key: string) => {
     let direction: 'ascending' | 'descending' = 'ascending';
@@ -132,7 +146,7 @@ const ComplianceTable: React.FC<ComplianceTableProps> = ({ data, performanceData
           <SortableHeader sortKey="nonComplianceRate" title="Non-Comp %" className="text-center" titleAttribute="Non-Compliance Rate" />
           <SortableHeader sortKey="overdueAverage" title="Overdue Avg." className="text-center" titleAttribute="Average Days Overdue" />
 
-          {reports.map(report => (
+          {activeReports.map(report => (
              <SortableHeader key={report.id} sortKey={report.id} title={report.title} className="text-center" titleAttribute={`Deadline: ${new Date(report.deadline).toLocaleDateString()}`}/>
           ))}
         </tr>
@@ -146,7 +160,7 @@ const ComplianceTable: React.FC<ComplianceTableProps> = ({ data, performanceData
             <td className="px-3 py-4 whitespace-nowrap text-sm text-center font-semibold text-green-600">{perf ? perf.onTimeRate.toFixed(0) + '%' : 'N/A'}</td>
             <td className="px-3 py-4 whitespace-nowrap text-sm text-center font-semibold text-red-600">{perf ? perf.nonComplianceRate.toFixed(0) + '%' : 'N/A'}</td>
             <td className="px-3 py-4 whitespace-nowrap text-sm text-center font-semibold text-gray-700">{perf ? perf.overdueAverage.toFixed(1) : 'N/A'}</td>
-            {reports.map(report => {
+            {activeReports.map(report => {
               const submission = submissions.find(s => s.schoolId === school.id && s.reportId === report.id);
               const status = getDisplayStatus(submission, report.deadline);
               return (

@@ -18,6 +18,8 @@ const UserForm: React.FC<UserFormProps> = ({ userToEdit, onSave, onCancel, schoo
         schoolName: '',
         assignedReportIds: []
     });
+    const [password, setPassword] = useState('');
+    const [confirmPassword, setConfirmPassword] = useState('');
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
@@ -28,6 +30,9 @@ const UserForm: React.FC<UserFormProps> = ({ userToEdit, onSave, onCancel, schoo
                 name: '', email: '', role: UserRole.SCHOOL, schoolName: schools[0]?.name || '', assignedReportIds: []
             });
         }
+        setPassword('');
+        setConfirmPassword('');
+        setError(null);
     }, [userToEdit, schools]);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -55,7 +60,7 @@ const UserForm: React.FC<UserFormProps> = ({ userToEdit, onSave, onCancel, schoo
             setError('Please fill in all required fields: Name, Email, and Role.');
             return false;
         }
-        if (!/^\S+@\S+\.\S+$/.test(formData.email)) {
+        if (!/^\S+@\S+\.\S+$/.test(formData.email as string)) {
             setError('Please enter a valid email address.');
             return false;
         }
@@ -68,13 +73,26 @@ const UserForm: React.FC<UserFormProps> = ({ userToEdit, onSave, onCancel, schoo
             setError('Please assign a school for this user.');
             return false;
         }
+        // Password validation
+        if (!userToEdit && !password) {
+            setError('Password is required for new users.');
+            return false;
+        }
+        if (password !== confirmPassword) {
+            setError('Passwords do not match.');
+            return false;
+        }
         return true;
     }
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         if (validateForm()) {
-            onSave(formData as User);
+            const finalUserData = { ...formData };
+            if (password) {
+                finalUserData.password = password;
+            }
+            onSave(finalUserData as User);
         }
     };
 
@@ -113,6 +131,20 @@ const UserForm: React.FC<UserFormProps> = ({ userToEdit, onSave, onCancel, schoo
                             </select>
                         </div>
                     )}
+
+                    <hr className="my-2" />
+                    <p className="text-sm text-gray-500">{userToEdit ? 'Leave password fields blank to keep the current password.' : 'Set a password for the new user.'}</p>
+                    
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700">Password</label>
+                        <input type="password" name="password" value={password} onChange={e => setPassword(e.target.value)} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3" autoComplete="new-password" />
+                    </div>
+                     <div>
+                        <label className="block text-sm font-medium text-gray-700">Confirm Password</label>
+                        <input type="password" name="confirmPassword" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3" autoComplete="new-password" />
+                    </div>
+
+
                     {error && <p className="text-sm text-red-600">{error}</p>}
                     <div className="mt-8 flex justify-end space-x-3">
                         <button type="button" onClick={onCancel} className="bg-gray-200 text-gray-800 px-4 py-2 rounded-md hover:bg-gray-300 font-medium">Cancel</button>

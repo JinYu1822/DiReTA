@@ -11,6 +11,7 @@ export interface User {
   schoolName?: string;
   role: UserRole;
   assignedReportIds?: string[];
+  password?: string;
 }
 
 export interface School {

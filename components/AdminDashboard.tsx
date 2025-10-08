@@ -166,8 +166,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentUser, data, onSu
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                  <StatCard title="Total Schools" value={schools.length.toString()} icon={<PresentationChartLineIcon />} />
                  <StatCard title="Total Reports Tracked" value={reports.length.toString()} icon={<DocumentChartBarIcon />} />
-                 <StatCard title="Top Performers" value={performanceData.promptSubmitters.length.toString()} icon={<StarIcon />} description="On-Time Rate (>=80%)" />
-                 <StatCard title="Needs Attention" value={performanceData.frequentLate.length.toString()} icon={<ExclamationTriangleIconDashboard />} description="Late/Overdue (>=2)" />
+                 <StatCard title="Top Performers" value={performanceData.promptSubmitters.length.toString()} icon={<StarIcon />} description="On-Time Rate (>=80%)" color="green" />
+                 <StatCard title="Needs Attention" value={performanceData.frequentLate.length.toString()} icon={<ExclamationTriangleIconDashboard />} description="Late/Overdue (>=2)" color="red" />
             </div>
             
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { User, UserRole, School, Report, Submission } from './types';
-import { getUsers, getSchools, getReports, getSubmissions } from './services/mockDataService';
+import { getUsers, getSchools, getReports, getSubmissions, saveUsers, saveReports, saveSubmissions } from './services/mockDataService';
 import LoginScreen from './components/LoginScreen';
 import AdminDashboard from './components/AdminDashboard';
 import SchoolDashboard from './components/SchoolDashboard';
@@ -55,14 +55,17 @@ const App: React.FC = () => {
 
   const updateSubmissions = (updatedSubmissions: Submission[]) => {
     setSubmissions(updatedSubmissions);
+    saveSubmissions(updatedSubmissions);
   };
 
   const updateUsers = (updatedUsers: User[]) => {
     setUsers(updatedUsers);
+    saveUsers(updatedUsers);
   };
   
   const updateReports = (updatedReports: Report[]) => {
     setReports(updatedReports);
+    saveReports(updatedReports);
   };
 
   if (isLoading) {

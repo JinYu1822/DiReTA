@@ -1,5 +1,30 @@
 import { User, UserRole, School, Report, Submission, StoredComplianceStatus } from '../types';
 
+// --- LocalStorage helpers ---
+const saveData = <T,>(key: string, data: T) => {
+    try {
+        localStorage.setItem(key, JSON.stringify(data));
+    } catch (e) {
+        console.error("Failed to save data to localStorage", e);
+    }
+};
+
+const loadData = <T,>(key: string, defaultValue: T): T => {
+    try {
+        const storedValue = localStorage.getItem(key);
+        if (storedValue) {
+            return JSON.parse(storedValue) as T;
+        }
+    } catch (e) {
+        console.error("Failed to load data from localStorage", e);
+        localStorage.removeItem(key);
+    }
+    // If nothing in storage, save the default value for next time
+    saveData(key, defaultValue);
+    return defaultValue;
+};
+
+
 const today = new Date();
 const addDays = (date: Date, days: number) => {
   const result = new Date(date);
@@ -36,14 +61,14 @@ const schools: School[] = schoolNames.map((name, index) => ({
 
 
 const users: User[] = [
-  { id: 'user-1', name: 'Admin User', email: 'admin@deped.gov.ph', role: UserRole.ADMIN },
-  { id: 'user-kyle', name: 'Kyle Brent', email: 'kylebrent11@gmail.com', role: UserRole.ADMIN },
-  { id: 'user-2', name: 'Moderator User', email: 'moderator@deped.gov.ph', role: UserRole.MODERATOR, assignedReportIds: ['report-1', 'report-3'] },
-  { id: 'user-3', name: 'Alpaco Contact 1', email: 'contact1@deped.gov.ph', schoolName: 'Alpaco Elementary School', role: UserRole.SCHOOL },
-  { id: 'user-4', name: 'Alpaco Contact 2', email: 'contact2@deped.gov.ph', schoolName: 'Alpaco Elementary School', role: UserRole.SCHOOL },
-  { id: 'user-5', name: 'Bairan Contact', email: 'contact@deped.gov.ph', schoolName: 'Bairan Elementary School', role: UserRole.SCHOOL },
-  { id: 'user-6', name: 'Balirong Principal', email: 'principal@deped.gov.ph', schoolName: 'Balirong Elementary School', role: UserRole.SCHOOL },
-  { id: 'user-7', name: 'Cabuan Admin', email: 'admin.cabuan@deped.gov.ph', schoolName: 'Cabuan Elementary School', role: UserRole.SCHOOL },
+  { id: 'user-1', name: 'Admin User', email: 'admin@deped.gov.ph', role: UserRole.ADMIN, password: 'dmt123890*' },
+  { id: 'user-kyle', name: 'Kyle Brent', email: 'kylebrent11@gmail.com', role: UserRole.ADMIN, password: 'dmt123890*' },
+  { id: 'user-2', name: 'Moderator User', email: 'moderator@deped.gov.ph', role: UserRole.MODERATOR, assignedReportIds: ['report-1', 'report-3'], password: 'password123' },
+  { id: 'user-3', name: 'Alpaco Contact 1', email: 'contact1@deped.gov.ph', schoolName: 'Alpaco Elementary School', role: UserRole.SCHOOL, password: 'password123' },
+  { id: 'user-4', name: 'Alpaco Contact 2', email: 'contact2@deped.gov.ph', schoolName: 'Alpaco Elementary School', role: UserRole.SCHOOL, password: 'password123' },
+  { id: 'user-5', name: 'Bairan Contact', email: 'contact@deped.gov.ph', schoolName: 'Bairan Elementary School', role: UserRole.SCHOOL, password: 'password123' },
+  { id: 'user-6', name: 'Balirong Principal', email: 'principal@deped.gov.ph', schoolName: 'Balirong Elementary School', role: UserRole.SCHOOL, password: 'password123' },
+  { id: 'user-7', name: 'Cabuan Admin', email: 'admin.cabuan@deped.gov.ph', schoolName: 'Cabuan Elementary School', role: UserRole.SCHOOL, password: 'password123' },
 ];
 
 const reports: Report[] = [
@@ -73,7 +98,13 @@ const submissions: Submission[] = [
 const simulateApi = <T,>(data: T): Promise<T> =>
   new Promise((resolve) => setTimeout(() => resolve(data), 500));
 
-export const getUsers = () => simulateApi(users);
-export const getSchools = () => simulateApi(schools);
-export const getReports = () => simulateApi(reports);
-export const getSubmissions = () => simulateApi(submissions);
+// Updated getters to use localStorage for persistence
+export const getUsers = () => simulateApi(loadData('app_users', users));
+export const getSchools = () => simulateApi(schools); // Schools are static, no LS needed
+export const getReports = () => simulateApi(loadData('app_reports', reports));
+export const getSubmissions = () => simulateApi(loadData('app_submissions', submissions));
+
+// Savers for data persistence
+export const saveUsers = (updatedUsers: User[]) => saveData('app_users', updatedUsers);
+export const saveReports = (updatedReports: Report[]) => saveData('app_reports', updatedReports);
+export const saveSubmissions = (updatedSubmissions: Submission[]) => saveData('app_submissions', updatedSubmissions);

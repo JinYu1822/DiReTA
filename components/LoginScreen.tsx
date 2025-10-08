@@ -8,9 +8,9 @@ interface LoginScreenProps {
 }
 
 const LoginScreen: React.FC<LoginScreenProps> = ({ users, onLogin }) => {
-  const [step, setStep] = useState<'email' | 'code'>('email');
+  const [step, setStep] = useState<'email' | 'password'>('email');
   const [email, setEmail] = useState('');
-  const [code, setCode] = useState('');
+  const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [userToLogin, setUserToLogin] = useState<User | null>(null);
 
@@ -21,28 +21,26 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ users, onLogin }) => {
     
     if (foundUser) {
       setUserToLogin(foundUser);
-      setStep('code');
+      setStep('password');
     } else {
       setError('Account not registered. Please contact an administrator.');
     }
   };
 
-  const handleCodeSubmit = (e: React.FormEvent) => {
+  const handlePasswordSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     
-    // In a real app, this code would be verified against a backend service.
-    // For this simulation, we'll use a static code.
-    if (code === '123456' && userToLogin) {
+    if (userToLogin && password === userToLogin.password) {
       onLogin(userToLogin.id);
     } else {
-      setError('Invalid code. Please try again.');
+      setError('Invalid password. Please try again.');
     }
   };
   
   const handleGoBack = () => {
     setError(null);
-    setCode('');
+    setPassword('');
     setStep('email');
     setUserToLogin(null);
   }
@@ -80,27 +78,25 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ users, onLogin }) => {
     </form>
   );
 
-  const renderCodeStep = () => (
-    <form onSubmit={handleCodeSubmit} className="space-y-6">
+  const renderPasswordStep = () => (
+    <form onSubmit={handlePasswordSubmit} className="space-y-6">
        <div className="text-sm text-gray-600">
-        <p>A login code has been sent to</p>
+        <p>Signing in as</p>
         <p className="font-medium text-gray-900">{userToLogin?.email}</p>
       </div>
       <div>
-        <label htmlFor="code" className="sr-only">Login Code</label>
+        <label htmlFor="password" className="sr-only">Password</label>
         <input
-          id="code"
-          name="code"
-          type="text"
-          inputMode="numeric"
-          autoComplete="one-time-code"
+          id="password"
+          name="password"
+          type="password"
+          autoComplete="current-password"
           required
-          value={code}
-          onChange={(e) => setCode(e.target.value)}
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
           className={`relative block w-full appearance-none rounded-md border px-3 py-3 text-gray-900 placeholder-gray-500 focus:z-10 focus:outline-none sm:text-sm ${error ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : 'border-gray-300 focus:border-brand-blue focus:ring-brand-blue'}`}
-          placeholder="6-digit code"
+          placeholder="Password"
         />
-        <p className="mt-2 text-xs text-gray-500">For simulation, use code: <strong className="font-mono">123456</strong></p>
       </div>
       
       {error && <p className="text-sm text-red-600">{error}</p>}
@@ -132,11 +128,11 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ users, onLogin }) => {
         <div className="text-center">
           <h1 className="text-3xl font-bold text-gray-900">Division Report Tracker</h1>
           <p className="mt-2 text-sm text-gray-600">
-            {step === 'email' ? 'Secure Sign In Required' : 'Check Your Email'}
+            {step === 'email' ? 'Secure Sign In Required' : 'Enter Your Password'}
           </p>
         </div>
         
-        {step === 'email' ? renderEmailStep() : renderCodeStep()}
+        {step === 'email' ? renderEmailStep() : renderPasswordStep()}
         
       </div>
     </div>
