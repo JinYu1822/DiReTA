@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { User } from '../types';
 import { ArrowLeftIcon } from './icons/ArrowLeftIcon';
+import Spinner from './Spinner';
 
 interface LoginScreenProps {
   users: User[];
@@ -13,29 +14,42 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ users, onLogin }) => {
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [userToLogin, setUserToLogin] = useState<User | null>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
 
   const handleEmailSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
-    const foundUser = users.find(u => u.email.toLowerCase() === email.toLowerCase());
-    
-    if (foundUser) {
-      setUserToLogin(foundUser);
-      setStep('password');
-    } else {
-      setError('Account not registered. Please contact an administrator.');
-    }
+    setIsProcessing(true);
+
+    // Simulate a brief delay for better user feedback
+    setTimeout(() => {
+      const foundUser = users.find(u => u.email.toLowerCase() === email.trim().toLowerCase());
+      
+      if (foundUser) {
+        setUserToLogin(foundUser);
+        setStep('password');
+      } else {
+        setError('Account not registered. Please contact an administrator.');
+      }
+      setIsProcessing(false);
+    }, 300);
   };
 
   const handlePasswordSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    setIsProcessing(true);
     
-    if (userToLogin && password === userToLogin.password) {
-      onLogin(userToLogin.id);
-    } else {
-      setError('Invalid password. Please try again.');
-    }
+    // Simulate a brief delay for better user feedback
+    setTimeout(() => {
+        if (userToLogin && userToLogin.password && password.trim() === userToLogin.password.trim()) {
+            onLogin(userToLogin.id);
+            // No need to set isProcessing to false, as the component will unmount on successful login
+        } else {
+            setError('Invalid password. Please try again.');
+            setIsProcessing(false);
+        }
+    }, 500);
   };
   
   const handleGoBack = () => {
@@ -67,9 +81,10 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ users, onLogin }) => {
       <div>
         <button
           type="submit"
-          className="group relative flex w-full justify-center rounded-md border border-transparent bg-brand-blue py-3 px-4 text-sm font-medium text-white hover:bg-brand-blue-light focus:outline-none focus:ring-2 focus:ring-brand-blue-light focus:ring-offset-2"
+          disabled={isProcessing}
+          className="group relative flex w-full justify-center rounded-md border border-transparent bg-brand-blue py-3 px-4 text-sm font-medium text-white hover:bg-brand-blue-light focus:outline-none focus:ring-2 focus:ring-brand-blue-light focus:ring-offset-2 disabled:bg-indigo-400 disabled:cursor-not-allowed"
         >
-          Continue
+          {isProcessing ? <Spinner className="h-5 w-5 border-b-2 border-white" /> : 'Continue'}
         </button>
       </div>
        <p className="text-xs text-center text-gray-500">
@@ -104,9 +119,10 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ users, onLogin }) => {
       <div>
         <button
           type="submit"
-          className="group relative flex w-full justify-center rounded-md border border-transparent bg-brand-blue py-3 px-4 text-sm font-medium text-white hover:bg-brand-blue-light focus:outline-none focus:ring-2 focus:ring-brand-blue-light focus:ring-offset-2"
+          disabled={isProcessing}
+          className="group relative flex w-full justify-center rounded-md border border-transparent bg-brand-blue py-3 px-4 text-sm font-medium text-white hover:bg-brand-blue-light focus:outline-none focus:ring-2 focus:ring-brand-blue-light focus:ring-offset-2 disabled:bg-indigo-400 disabled:cursor-not-allowed"
         >
-          Sign In
+          {isProcessing ? <Spinner className="h-5 w-5 border-b-2 border-white" /> : 'Sign In'}
         </button>
       </div>
        <div className="text-center">
