@@ -38,7 +38,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentUser, data, onSu
 
       let onTimeCount = 0;
       let lateOrOverdueCount = 0;
-      let totalDaysOverdue = 0;
+      let totalDaysPastDeadline = 0;
+      let reportsPastDeadlineCount = 0;
       const now = new Date();
       
       applicableReports.forEach(report => {
@@ -51,18 +52,22 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentUser, data, onSu
           lateOrOverdueCount++;
         }
 
-        if (status === DisplayComplianceStatus.OVERDUE) {
-            const deadline = new Date(report.deadline);
-            if (now > deadline) {
-                const daysDiff = Math.floor((now.getTime() - deadline.getTime()) / (1000 * 3600 * 24));
-                totalDaysOverdue += daysDiff;
-            }
+        const deadline = new Date(report.deadline);
+        if (status === DisplayComplianceStatus.SUBMITTED_LATE && submission?.submissionDate) {
+            const submissionDate = new Date(submission.submissionDate);
+            const daysDiff = Math.ceil((submissionDate.getTime() - deadline.getTime()) / (1000 * 3600 * 24));
+            totalDaysPastDeadline += daysDiff > 0 ? daysDiff : 0;
+            reportsPastDeadlineCount++;
+        } else if (status === DisplayComplianceStatus.OVERDUE) {
+            const daysDiff = Math.floor((now.getTime() - deadline.getTime()) / (1000 * 3600 * 24));
+            totalDaysPastDeadline += daysDiff > 0 ? daysDiff : 0;
+            reportsPastDeadlineCount++;
         }
       });
       
       const onTimeRate = (onTimeCount / applicableReports.length) * 100;
       const nonComplianceRate = (lateOrOverdueCount / applicableReports.length) * 100;
-      const overdueAverage = applicableReports.length > 0 ? totalDaysOverdue / applicableReports.length : 0;
+      const overdueAverage = reportsPastDeadlineCount > 0 ? totalDaysPastDeadline / reportsPastDeadlineCount : 0;
       
       return { schoolId: school.id, name: school.name, onTimeRate, nonComplianceRate, lateOrOverdueCount, reportCount: applicableReports.length, overdueAverage };
     });

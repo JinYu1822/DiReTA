@@ -49,24 +49,31 @@ const SchoolDashboard: React.FC<SchoolDashboardProps> = ({ currentUser, data }) 
 
     let onTimeCount = 0;
     let nonCompliantCount = 0;
-    let totalDaysOverdue = 0;
+    let totalDaysPastDeadline = 0;
+    let reportsPastDeadlineCount = 0;
     const now = new Date();
     
     applicableReports.forEach(report => {
         const submission = schoolSubmissions.find(s => s.reportId === report.id);
         const status = getDisplayStatus(submission, report.deadline);
+
         if (status === DisplayComplianceStatus.SUBMITTED_ON_TIME) {
             onTimeCount++;
         }
         if (status === DisplayComplianceStatus.SUBMITTED_LATE || status === DisplayComplianceStatus.OVERDUE) {
             nonCompliantCount++;
         }
-        if (status === DisplayComplianceStatus.OVERDUE) {
-            const deadline = new Date(report.deadline);
-            if (now > deadline) {
-                const daysDiff = Math.floor((now.getTime() - deadline.getTime()) / (1000 * 3600 * 24));
-                totalDaysOverdue += daysDiff;
-            }
+
+        const deadline = new Date(report.deadline);
+        if (status === DisplayComplianceStatus.SUBMITTED_LATE && submission?.submissionDate) {
+            const submissionDate = new Date(submission.submissionDate);
+            const daysDiff = Math.ceil((submissionDate.getTime() - deadline.getTime()) / (1000 * 3600 * 24));
+            totalDaysPastDeadline += daysDiff > 0 ? daysDiff : 0;
+            reportsPastDeadlineCount++;
+        } else if (status === DisplayComplianceStatus.OVERDUE) {
+            const daysDiff = Math.floor((now.getTime() - deadline.getTime()) / (1000 * 3600 * 24));
+            totalDaysPastDeadline += daysDiff > 0 ? daysDiff : 0;
+            reportsPastDeadlineCount++;
         }
     });
 
@@ -75,7 +82,7 @@ const SchoolDashboard: React.FC<SchoolDashboardProps> = ({ currentUser, data }) 
         nonComplianceRate: applicableReports.length > 0 ? (nonCompliantCount / applicableReports.length) * 100 : 0,
     };
     
-    const overdueAverage = applicableReports.length > 0 ? totalDaysOverdue / applicableReports.length : 0;
+    const overdueAverage = reportsPastDeadlineCount > 0 ? totalDaysPastDeadline / reportsPastDeadlineCount : 0;
     
     const reportList = reports.map(report => {
         const submission = schoolSubmissions.find(s => s.reportId === report.id);
