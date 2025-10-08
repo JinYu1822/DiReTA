@@ -141,12 +141,14 @@ const SchoolDashboard: React.FC<SchoolDashboardProps> = ({ currentUser, data }) 
             value={`${schoolData.performance?.onTimeRate.toFixed(0) || 0}%`}
             description="Reports submitted by the deadline"
             color="green"
+            icon={<CheckCircleIcon />}
         />
         <StatCard 
             title="Non-Compliance Rate" 
             value={`${schoolData.performance?.nonComplianceRate.toFixed(0) || 0}%`}
             description="Reports submitted late or overdue"
             color="red"
+            icon={<XCircleIcon />}
         />
         <StatCard 
             title="Average Days Overdue" 
