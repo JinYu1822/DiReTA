@@ -7,6 +7,9 @@ import SchoolDashboard from './components/SchoolDashboard';
 import Header from './components/Header';
 import Spinner from './components/Spinner';
 import Notification from './components/Notification';
+import { ExclamationTriangleIcon } from './components/icons/StatusIcons';
+import { ArrowPathIcon } from './components/icons/DashboardIcons';
+
 
 const App: React.FC = () => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
@@ -94,6 +97,13 @@ const App: React.FC = () => {
     sessionStorage.removeItem('loggedInUserId');
     setCurrentUser(null);
   };
+  
+  const handleManualRefresh = async () => {
+    if (pollTimeoutRef.current) clearTimeout(pollTimeoutRef.current); // Pause polling
+    console.log('Manual data refresh triggered.');
+    await fetchData(false); // Use false to show the main loading spinner
+    schedulePoll(30000); // Reschedule polling
+  };
 
   const updateSubmissions = async (updatedSubmissions: Submission[]) => {
     if (pollTimeoutRef.current) clearTimeout(pollTimeoutRef.current); // Pause polling
@@ -161,7 +171,20 @@ const App: React.FC = () => {
   }
 
   if (error) {
-    return <div className="text-red-500 text-center mt-10">{error}</div>;
+    return (
+        <div className="flex flex-col items-center justify-center min-h-screen text-center p-4">
+          <ExclamationTriangleIcon className="w-12 h-12 text-red-400 mb-4" />
+          <h2 className="text-xl font-bold text-gray-800 mb-2">Failed to Load Data</h2>
+          <p className="text-red-600 mb-6 max-w-md">{error}</p>
+          <button
+            onClick={() => fetchData(false)}
+            className="flex items-center gap-2 px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-brand-blue hover:bg-brand-blue-light focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-blue-light"
+          >
+            <ArrowPathIcon className="w-5 h-5" />
+            Try Again
+          </button>
+        </div>
+      );
   }
 
   if (!currentUser) {
@@ -189,9 +212,14 @@ const App: React.FC = () => {
               onSubmissionsUpdate={updateSubmissions}
               onUsersUpdate={updateUsers}
               onReportsUpdate={updateReports}
+              onRefreshData={handleManualRefresh}
             />
           ) : (
-            <SchoolDashboard currentUser={currentUser} data={data} />
+            <SchoolDashboard 
+                currentUser={currentUser} 
+                data={data} 
+                onRefreshData={handleManualRefresh}
+            />
           )}
         </main>
       </div>

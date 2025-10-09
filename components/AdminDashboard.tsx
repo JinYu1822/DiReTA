@@ -5,7 +5,7 @@ import ReportTaggingTool from './ReportTaggingTool';
 import UserManagement from './UserManagement';
 import StatCard from './StatCard';
 import EmailAutomationSimulator from './EmailAutomationSimulator';
-import { DocumentChartBarIcon, PresentationChartLineIcon, StarIcon, ExclamationTriangleIcon as ExclamationTriangleIconDashboard, ChevronDownIcon, ArrowDownTrayIcon } from './icons/DashboardIcons';
+import { DocumentChartBarIcon, PresentationChartLineIcon, StarIcon, ExclamationTriangleIcon as ExclamationTriangleIconDashboard, ChevronDownIcon, ArrowDownTrayIcon, ArrowPathIcon } from './icons/DashboardIcons';
 import { CheckCircleIcon, XCircleIcon, ClockIcon, DocumentMinusIcon } from './icons/StatusIcons';
 import { getDisplayStatus } from '../utils/complianceUtils';
 
@@ -15,9 +15,10 @@ interface AdminDashboardProps {
   onSubmissionsUpdate: (updatedSubmissions: Submission[]) => Promise<void>;
   onUsersUpdate: (updatedUsers: User[]) => Promise<void>;
   onReportsUpdate: (updatedReports: Report[]) => Promise<void>;
+  onRefreshData: () => Promise<void>;
 }
 
-const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentUser, data, onSubmissionsUpdate, onUsersUpdate, onReportsUpdate }) => {
+const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentUser, data, onSubmissionsUpdate, onUsersUpdate, onReportsUpdate, onRefreshData }) => {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [isPromptSubmittersOpen, setIsPromptSubmittersOpen] = useState(false);
   const [isFrequentLateOpen, setIsFrequentLateOpen] = useState(false);
@@ -281,10 +282,20 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentUser, data, onSu
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-800">Welcome, {currentUser.name}</h1>
-        <p className="text-gray-600">Here's the overview of the division's report compliance.</p>
+      <div className="flex justify-between items-start">
+        <div>
+            <h1 className="text-2xl font-bold text-gray-800">Welcome, {currentUser.name}</h1>
+            <p className="text-gray-600">Here's the overview of the division's report compliance.</p>
+        </div>
+        <button
+            onClick={onRefreshData}
+            className="flex-shrink-0 flex items-center gap-2 px-3 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-blue-light"
+        >
+            <ArrowPathIcon className="w-4 h-4" />
+            <span>Refresh Data</span>
+        </button>
       </div>
+
 
       <div className="border-b border-gray-200">
         {/* Mobile view: Dropdown */}

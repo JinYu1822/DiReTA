@@ -3,10 +3,12 @@ import { User, AppData, Submission, StoredComplianceStatus, DisplayComplianceSta
 import StatCard from './StatCard';
 import { CheckCircleIcon, XCircleIcon, ClockIcon, DocumentMinusIcon, ExclamationTriangleIcon } from './icons/StatusIcons';
 import { getDisplayStatus } from '../utils/complianceUtils';
+import { ArrowPathIcon } from './icons/DashboardIcons';
 
 interface SchoolDashboardProps {
   currentUser: User;
   data: AppData;
+  onRefreshData: () => Promise<void>;
 }
 
 const StatusBadge: React.FC<{ status: DisplayComplianceStatus }> = ({ status }) => {
@@ -27,7 +29,7 @@ const StatusBadge: React.FC<{ status: DisplayComplianceStatus }> = ({ status }) 
   );
 };
 
-const SchoolDashboard: React.FC<SchoolDashboardProps> = ({ currentUser, data }) => {
+const SchoolDashboard: React.FC<SchoolDashboardProps> = ({ currentUser, data, onRefreshData }) => {
   const { schools, reports, submissions } = data;
   const school = schools.find(s => s.name === currentUser.schoolName);
 
@@ -105,9 +107,18 @@ const SchoolDashboard: React.FC<SchoolDashboardProps> = ({ currentUser, data }) 
 
   return (
     <div className="space-y-6">
-       <div>
-        <h1 className="text-2xl font-bold text-gray-800">Welcome, {school.name}</h1>
-        <p className="text-gray-600">This is your personalized compliance dashboard.</p>
+       <div className="flex justify-between items-start">
+          <div>
+              <h1 className="text-2xl font-bold text-gray-800">Welcome, {school.name}</h1>
+              <p className="text-gray-600">This is your personalized compliance dashboard.</p>
+          </div>
+          <button
+              onClick={onRefreshData}
+              className="flex-shrink-0 flex items-center gap-2 px-3 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-blue-light"
+          >
+              <ArrowPathIcon className="w-4 h-4" />
+              <span>Refresh Data</span>
+          </button>
       </div>
       
       {schoolData.overdueReports.length > 0 && (

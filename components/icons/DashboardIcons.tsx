@@ -65,3 +65,10 @@ export const PaperAirplaneIcon: React.FC<{ className?: string }> = ({ className 
         <path strokeLinecap="round" strokeLinejoin="round" d="M6 12 3.269 3.125A59.769 59.769 0 0 1 21.485 12 59.768 59.768 0 0 1 3.27 20.875L5.999 12Zm0 0h7.5" />
     </svg>
 );
+
+export const ArrowPathIcon: React.FC<{ className?: string }> = ({ className = "w-5 h-5" }) => (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001a.75.75 0 0 1 .75.75 2.25 2.25 0 0 1-2.25 2.25h-5.25a2.25 2.25 0 0 1-2.25-2.25v-5.25a2.25 2.25 0 0 1 2.25-2.25h5.25a2.25 2.25 0 0 1 2.25 2.25v.75a.75.75 0 0 1-1.5 0v-.75a.75.75 0 0 0-.75-.75h-5.25a.75.75 0 0 0-.75.75v5.25a.75.75 0 0 0 .75.75h5.25a.75.75 0 0 0 .75-.75v-.001Z" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 12c-2.621 4.212-7.024 7.5-12.25 7.5S.75 16.212.75 12c0-4.212 4.403-7.5 9.625-7.5a1.875 1.875 0 0 1 1.875 1.875" />
+    </svg>
+);
