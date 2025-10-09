@@ -64,7 +64,7 @@ const ReportTaggingTool: React.FC<ReportTaggingToolProps> = ({ currentUser, data
                 return {
                     schoolId: school.id,
                     status: submission?.status || '',
-                    submissionDate: submission?.submissionDate || new Date().toISOString().split('T')[0],
+                    submissionDate: submission?.submissionDate || '',
                     remarks: submission?.remarks || ''
                 };
             });
@@ -84,7 +84,20 @@ const ReportTaggingTool: React.FC<ReportTaggingToolProps> = ({ currentUser, data
 
     const handleStatusChange = <K extends keyof SchoolStatusUpdate>(schoolId: string, field: K, value: SchoolStatusUpdate[K]) => {
         setSchoolStatuses(prev =>
-            prev.map(s => (s.schoolId === schoolId ? { ...s, [field]: value } : s))
+            prev.map(s => {
+                if (s.schoolId === schoolId) {
+                    const updatedStatus = { ...s, [field]: value };
+                    
+                    // If the status is changed to 'Submitted' and the date was previously blank,
+                    // set the submissionDate to today's date.
+                    if (field === 'status' && value === StoredComplianceStatus.SUBMITTED && !s.submissionDate) {
+                        updatedStatus.submissionDate = new Date().toISOString().split('T')[0];
+                    }
+
+                    return updatedStatus;
+                }
+                return s;
+            })
         );
     };
 
