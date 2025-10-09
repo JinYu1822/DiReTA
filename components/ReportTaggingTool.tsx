@@ -135,7 +135,8 @@ const ReportTaggingTool: React.FC<ReportTaggingToolProps> = ({ currentUser, data
         
         try {
             await onSubmissionsUpdate(updatedSubmissions);
-            setInitialSchoolStatuses(JSON.parse(JSON.stringify(schoolStatuses))); // Resync initial state on success
+            // After a successful save, the useEffect listening for `submissions` prop changes
+            // will automatically resync the component's state. No need to set it here.
 
             const now = Date.now();
             const newTimestamps = { ...lastUpdatedTimestamps };
