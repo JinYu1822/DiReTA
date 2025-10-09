@@ -166,21 +166,21 @@ const SchoolDashboard: React.FC<SchoolDashboardProps> = ({ currentUser, data }) 
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Report Title</th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Focal Person</th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Mode of Submission</th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Deadline</th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Submission Date</th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Remarks</th>
+                <th scope="col" className="sticky left-0 z-10 bg-gray-50 px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200 min-w-[180px]">Report Title</th>
+                <th scope="col" className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Focal Person</th>
+                <th scope="col" className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Mode of Submission</th>
+                <th scope="col" className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Deadline</th>
+                <th scope="col" className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                <th scope="col" className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Submission Date</th>
+                <th scope="col" className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Remarks</th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {schoolData.reportList.map(report => (
                 <tr key={report.id}>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{report.title}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{report.focalPerson}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  <td className="sticky left-0 bg-white px-3 sm:px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 border-r border-gray-200 truncate max-w-[180px]" title={report.title}>{report.title}</td>
+                  <td className="px-3 sm:px-6 py-4 text-sm text-gray-500">{report.focalPerson}</td>
+                  <td className="px-3 sm:px-6 py-4 text-sm text-gray-500">
                     {isUrl(report.modeOfSubmission) ? (
                         <a href={report.modeOfSubmission} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-700 hover:underline">
                             Submission Link
@@ -189,10 +189,10 @@ const SchoolDashboard: React.FC<SchoolDashboardProps> = ({ currentUser, data }) 
                         report.modeOfSubmission
                     )}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{new Date(report.deadline).toLocaleDateString()}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500"><StatusBadge status={report.status} /></td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{report.submissionDate ? new Date(report.submissionDate).toLocaleDateString() : '—'}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{report.remarks || '—'}</td>
+                  <td className="px-3 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-500">{new Date(report.deadline).toLocaleDateString()}</td>
+                  <td className="px-3 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-500"><StatusBadge status={report.status} /></td>
+                  <td className="px-3 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-500">{report.submissionDate ? new Date(report.submissionDate).toLocaleDateString() : '—'}</td>
+                  <td className="px-3 sm:px-6 py-4 text-sm text-gray-500">{report.remarks || '—'}</td>
                 </tr>
               ))}
             </tbody>
