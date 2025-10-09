@@ -139,7 +139,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ users, onLogin }) => {
   );
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gray-100">
+    <div className="relative flex items-center justify-center min-h-screen bg-gray-100">
       <div className="w-full max-w-md p-8 space-y-6 bg-white rounded-lg shadow-lg">
         <div className="text-center">
           <h1 className="text-3xl font-bold text-gray-900">Division Report Tracker</h1>
@@ -151,6 +151,9 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ users, onLogin }) => {
         {step === 'email' ? renderEmailStep() : renderPasswordStep()}
         
       </div>
+      <footer className="absolute bottom-0 left-0 right-0 text-center py-4 text-xs text-gray-500">
+        Developed by: Kyle L. • Powered by AI
+      </footer>
     </div>
   );
 };

@@ -171,28 +171,33 @@ const App: React.FC = () => {
   const data = { users, schools, reports, submissions };
 
   return (
-    <div className="min-h-screen bg-gray-100">
-      {notification && (
-        <Notification
-          message={notification.message}
-          type={notification.type}
-          onClose={() => setNotification(null)}
-        />
-      )}
-      <Header user={currentUser} onLogout={handleLogout} />
-      <main className="p-4 sm:p-6 lg:p-8">
-        {currentUser.role === UserRole.ADMIN || currentUser.role === UserRole.MODERATOR ? (
-          <AdminDashboard 
-            currentUser={currentUser} 
-            data={data} 
-            onSubmissionsUpdate={updateSubmissions}
-            onUsersUpdate={updateUsers}
-            onReportsUpdate={updateReports}
+    <div className="min-h-screen bg-gray-100 flex flex-col">
+      <div className="flex-grow">
+        {notification && (
+          <Notification
+            message={notification.message}
+            type={notification.type}
+            onClose={() => setNotification(null)}
           />
-        ) : (
-          <SchoolDashboard currentUser={currentUser} data={data} />
         )}
-      </main>
+        <Header user={currentUser} onLogout={handleLogout} />
+        <main className="p-4 sm:p-6 lg:p-8">
+          {currentUser.role === UserRole.ADMIN || currentUser.role === UserRole.MODERATOR ? (
+            <AdminDashboard 
+              currentUser={currentUser} 
+              data={data} 
+              onSubmissionsUpdate={updateSubmissions}
+              onUsersUpdate={updateUsers}
+              onReportsUpdate={updateReports}
+            />
+          ) : (
+            <SchoolDashboard currentUser={currentUser} data={data} />
+          )}
+        </main>
+      </div>
+      <footer className="text-center py-4 text-xs text-gray-500">
+        Developed by: Kyle L. • Powered by AI
+      </footer>
     </div>
   );
 };
