@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { User, UserRole, School, Report, Submission } from './types';
 import { getUsers, getSchools, getReports, getSubmissions, saveUsers, saveReports, saveSubmissions } from './services/mockDataService';
 import LoginScreen from './components/LoginScreen';
@@ -18,6 +18,7 @@ const App: React.FC = () => {
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [notification, setNotification] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+  const pollTimeoutRef = useRef<number | null>(null);
 
 
   const fetchData = useCallback(async (isBackgroundRefresh = false) => {
@@ -57,20 +58,28 @@ const App: React.FC = () => {
       }
     }
   }, []);
-
-  useEffect(() => {
-    fetchData(); // Initial data fetch
+  
+  const schedulePoll = useCallback((delay: number = 30000) => {
+    if (pollTimeoutRef.current) {
+        clearTimeout(pollTimeoutRef.current);
+    }
+    pollTimeoutRef.current = window.setTimeout(async () => {
+        console.log('Polling for new data...');
+        await fetchData(true);
+        schedulePoll(); // Schedules the next one for 30s
+    }, delay);
   }, [fetchData]);
-
-  // Polling for data updates every 30 seconds
+  
   useEffect(() => {
-    const intervalId = setInterval(() => {
-      console.log('Polling for new data...');
-      fetchData(true);
-    }, 30000); // 30 seconds
-
-    return () => clearInterval(intervalId); // Cleanup on component unmount
-  }, [fetchData]);
+    fetchData().then(() => {
+        schedulePoll(); // Start polling after initial fetch succeeds
+    });
+    return () => {
+        if (pollTimeoutRef.current) {
+            clearTimeout(pollTimeoutRef.current);
+        }
+    }
+  }, [fetchData, schedulePoll]);
 
 
   const handleLogin = (userId: string) => {
@@ -87,6 +96,7 @@ const App: React.FC = () => {
   };
 
   const updateSubmissions = async (updatedSubmissions: Submission[]) => {
+    if (pollTimeoutRef.current) clearTimeout(pollTimeoutRef.current); // Pause polling
     setIsSaving(true);
     setNotification(null);
     try {
@@ -100,10 +110,12 @@ const App: React.FC = () => {
         throw error; // Re-throw to let the component know about the failure
     } finally {
         setIsSaving(false);
+        schedulePoll(5000); // Reschedule polling, with a short delay to get confirmation
     }
   };
 
   const updateUsers = async (updatedUsers: User[]) => {
+    if (pollTimeoutRef.current) clearTimeout(pollTimeoutRef.current); // Pause polling
     setIsSaving(true);
     setNotification(null);
     try {
@@ -117,10 +129,12 @@ const App: React.FC = () => {
       throw error;
     } finally {
       setIsSaving(false);
+      schedulePoll(5000); // Reschedule polling, with a short delay to get confirmation
     }
   };
   
   const updateReports = async (updatedReports: Report[]) => {
+    if (pollTimeoutRef.current) clearTimeout(pollTimeoutRef.current); // Pause polling
     setIsSaving(true);
     setNotification(null);
      try {
@@ -134,6 +148,7 @@ const App: React.FC = () => {
       throw error;
     } finally {
       setIsSaving(false);
+      schedulePoll(5000); // Reschedule polling, with a short delay to get confirmation
     }
   };
 
