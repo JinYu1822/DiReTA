@@ -60,6 +60,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentUser, data, onSu
         
         if (status === DisplayComplianceStatus.SUBMITTED_ON_TIME) {
           onTimeCount++;
+        // FIX: Corrected typo from OVERDUCE to OVERDUE
         } else if (status === DisplayComplianceStatus.SUBMITTED_LATE || status === DisplayComplianceStatus.OVERDUE) {
           lateOrOverdueCount++;
         }
@@ -158,8 +159,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentUser, data, onSu
         return <ReportTaggingTool 
                   currentUser={currentUser}
                   data={data} 
-                  onSubmissionsUpdate={onSubmissionsUpdate}
-                  onReportsUpdate={onReportsUpdate}
                />;
       case 'userManagement':
         return currentUser.role === UserRole.ADMIN ? <UserManagement 

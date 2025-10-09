@@ -4,7 +4,10 @@ import { SCRIPT_URL } from './apiConfig';
 // Helper function for GET requests to the Google Apps Script
 const fetchData = async <T,>(action: string): Promise<T> => {
     try {
-        const response = await fetch(`${SCRIPT_URL}?action=${action}`);
+        const response = await fetch(`${SCRIPT_URL}?action=${action}`, {
+            mode: 'cors',
+            redirect: 'follow',
+        });
         if (!response.ok) {
             throw new Error(`Network response was not ok for action: ${action}`);
         }
