@@ -1,14 +1,11 @@
 import React, { useState } from 'react';
-import { AppData, DisplayComplianceStatus, UserRole, StoredComplianceStatus } from '../types';
+import { useData } from '../contexts/DataContext';
+import { DisplayComplianceStatus, UserRole, StoredComplianceStatus } from '../types';
 import { getDisplayStatus } from '../utils/complianceUtils';
 import { PaperAirplaneIcon } from './icons/DashboardIcons';
 
-interface EmailAutomationSimulatorProps {
-    data: AppData;
-}
-
-const EmailAutomationSimulator: React.FC<EmailAutomationSimulatorProps> = ({ data }) => {
-    const { users, schools, reports, submissions } = data;
+const EmailAutomationSimulator: React.FC = () => {
+    const { users, schools, reports, submissions } = useData();
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [simulationLog, setSimulationLog] = useState<string[]>([]);
 

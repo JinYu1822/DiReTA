@@ -1,15 +1,7 @@
-
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { AppData, Submission, StoredComplianceStatus, Report, User, UserRole } from '../types';
+import { useData } from '../contexts/DataContext';
+import { StoredComplianceStatus, Report, UserRole } from '../types';
 import { PencilSquareIcon } from './icons/DashboardIcons';
-
-
-interface ReportTaggingToolProps {
-    currentUser: User;
-    data: AppData;
-    onSubmissionsUpdate: (updatedSubmissions: Submission[]) => void;
-    onReportsUpdate: (updatedReports: Report[]) => void;
-}
 
 interface SchoolStatusUpdate {
     schoolId: string;
@@ -18,10 +10,11 @@ interface SchoolStatusUpdate {
     remarks: string;
 }
 
-const ReportTaggingTool: React.FC<ReportTaggingToolProps> = ({ currentUser, data, onSubmissionsUpdate, onReportsUpdate }) => {
-    const { schools, reports, submissions } = data;
+const ReportTaggingTool: React.FC = () => {
+    const { currentUser, schools, reports, submissions, updateSubmissions, updateReports } = useData();
 
     const visibleReports = useMemo(() => {
+        if (!currentUser || !reports) return [];
         if (currentUser.role === UserRole.MODERATOR) {
             return reports.filter(r => currentUser.assignedReportIds?.includes(r.id));
         }
@@ -40,22 +33,19 @@ const ReportTaggingTool: React.FC<ReportTaggingToolProps> = ({ currentUser, data
     const hideTimestampTimeoutRef = useRef<{ [schoolId: string]: number }>({});
 
     useEffect(() => {
-        // Cleanup all timeouts on component unmount
         return () => {
             Object.values(hideTimestampTimeoutRef.current).forEach(clearTimeout);
         };
     }, []);
 
-    // Effect to select the first report by default
     useEffect(() => {
         if (!selectedReportId && visibleReports.length > 0) {
             setSelectedReportId(visibleReports[0].id);
         }
     }, [visibleReports, selectedReportId]);
 
-    // Effect to load school statuses when the report changes or submissions data is updated
     useEffect(() => {
-        if (selectedReportId) {
+        if (selectedReportId && schools && submissions) {
             const statuses = schools.map((school): SchoolStatusUpdate => {
                 const submission = submissions.find(s => s.schoolId === school.id && s.reportId === selectedReportId);
                 return {
@@ -66,11 +56,10 @@ const ReportTaggingTool: React.FC<ReportTaggingToolProps> = ({ currentUser, data
                 };
             });
             setSchoolStatuses(statuses);
-            setInitialSchoolStatuses(JSON.parse(JSON.stringify(statuses))); // Deep copy for comparison
+            setInitialSchoolStatuses(JSON.parse(JSON.stringify(statuses)));
         }
     }, [selectedReportId, schools, submissions]);
 
-    // Effect to clear "Updated" statuses when the selected report changes
     useEffect(() => {
         setLastUpdatedTimestamps({});
     }, [selectedReportId]);
@@ -92,14 +81,14 @@ const ReportTaggingTool: React.FC<ReportTaggingToolProps> = ({ currentUser, data
         schoolStatuses.forEach(update => {
             const initial = initialSchoolStatuses.find(s => s.schoolId === update.schoolId);
             if (JSON.stringify(update) === JSON.stringify(initial)) {
-                return; // No change for this school
+                return;
             }
 
             changedSchoolIds.push(update.schoolId);
             const existingIndex = updatedSubmissions.findIndex(s => s.schoolId === update.schoolId && s.reportId === selectedReportId);
 
-            if (update.status) { // Add or update submission
-                const newSubmission: Submission = {
+            if (update.status) {
+                const newSubmission = {
                     schoolId: update.schoolId,
                     reportId: selectedReportId,
                     status: update.status as StoredComplianceStatus,
@@ -111,31 +100,28 @@ const ReportTaggingTool: React.FC<ReportTaggingToolProps> = ({ currentUser, data
                 } else {
                     updatedSubmissions.push(newSubmission);
                 }
-            } else if (existingIndex !== -1) { // Remove submission
+            } else if (existingIndex !== -1) {
                 updatedSubmissions.splice(existingIndex, 1);
             }
         });
 
-        onSubmissionsUpdate(updatedSubmissions);
-        setInitialSchoolStatuses(JSON.parse(JSON.stringify(schoolStatuses))); // Resync initial state
+        updateSubmissions(updatedSubmissions);
+        setInitialSchoolStatuses(JSON.parse(JSON.stringify(schoolStatuses)));
 
         const now = Date.now();
         const newTimestamps = { ...lastUpdatedTimestamps };
         changedSchoolIds.forEach(schoolId => {
             newTimestamps[schoolId] = now;
-
-            // Clear any existing timeout for this school
             if (hideTimestampTimeoutRef.current[schoolId]) {
                 clearTimeout(hideTimestampTimeoutRef.current[schoolId]);
             }
-            // Set a new timeout to hide the "Updated" message after 1 hour
             hideTimestampTimeoutRef.current[schoolId] = window.setTimeout(() => {
                 setLastUpdatedTimestamps(prev => {
                     const freshTimestamps = { ...prev };
                     delete freshTimestamps[schoolId];
                     return freshTimestamps;
                 });
-            }, 3600000); // 1 hour
+            }, 3600000);
         });
         setLastUpdatedTimestamps(newTimestamps);
     };
@@ -153,7 +139,7 @@ const ReportTaggingTool: React.FC<ReportTaggingToolProps> = ({ currentUser, data
             setReportFormData({
                 title: reportToEdit.title,
                 focalPerson: reportToEdit.focalPerson,
-                deadline: reportToEdit.deadline, // Assumes YYYY-MM-DD format
+                deadline: reportToEdit.deadline,
                 modeOfSubmission: reportToEdit.modeOfSubmission,
             });
             setIsReportModalOpen(true);
@@ -166,16 +152,16 @@ const ReportTaggingTool: React.FC<ReportTaggingToolProps> = ({ currentUser, data
             return;
         }
 
-        if (editingReport) { // Update existing report
-            const updatedReport: Report = { ...editingReport, ...reportFormData };
-            onReportsUpdate(reports.map(r => r.id === editingReport.id ? updatedReport : r));
+        if (editingReport) {
+            const updatedReport = { ...editingReport, ...reportFormData };
+            updateReports(reports.map(r => r.id === editingReport.id ? updatedReport : r));
             alert('Report updated successfully!');
-        } else { // Add new report
-            const newReportData: Report = {
+        } else {
+            const newReportData = {
                 id: `report-${new Date().getTime()}`,
                 ...reportFormData
             };
-            onReportsUpdate([...reports, newReportData]);
+            updateReports([...reports, newReportData]);
             setSelectedReportId(newReportData.id);
             alert('New report added successfully!');
         }
@@ -183,6 +169,8 @@ const ReportTaggingTool: React.FC<ReportTaggingToolProps> = ({ currentUser, data
         setIsReportModalOpen(false);
         setEditingReport(null);
     };
+
+    if (!currentUser) return null;
 
     const selectedReport = reports.find(r => r.id === selectedReportId);
 

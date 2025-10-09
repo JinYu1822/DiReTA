@@ -1,16 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { User, School, Report, UserRole } from '../types';
+import { User, UserRole } from '../types';
+import { useData } from '../contexts/DataContext';
 
 interface UserFormProps {
     userToEdit: User | null;
     onSave: (user: User) => void;
     onCancel: () => void;
-    schools: School[];
-    reports: Report[];
-    existingUsers: User[];
 }
 
-const UserForm: React.FC<UserFormProps> = ({ userToEdit, onSave, onCancel, schools, reports, existingUsers }) => {
+const UserForm: React.FC<UserFormProps> = ({ userToEdit, onSave, onCancel }) => {
+    const { schools, reports, users: existingUsers } = useData();
     const [formData, setFormData] = useState<Partial<User>>({
         name: '',
         email: '',
@@ -40,7 +39,6 @@ const UserForm: React.FC<UserFormProps> = ({ userToEdit, onSave, onCancel, schoo
         
         setFormData(prev => {
             const newState = { ...prev, [name]: value };
-            // Reset assignments when role changes
             if(name === 'role') {
                 newState.schoolName = value === UserRole.SCHOOL ? (schools[0]?.name || '') : '';
                 newState.assignedReportIds = [];
@@ -73,7 +71,6 @@ const UserForm: React.FC<UserFormProps> = ({ userToEdit, onSave, onCancel, schoo
             setError('Please assign a school for this user.');
             return false;
         }
-        // Password validation
         if (!userToEdit && !password) {
             setError('Password is required for new users.');
             return false;

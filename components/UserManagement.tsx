@@ -1,17 +1,11 @@
 import React, { useState } from 'react';
-import { User, School, Report, UserRole } from '../types';
+import { useData } from '../contexts/DataContext';
+import { User, UserRole } from '../types';
 import UserForm from './UserForm';
 import { UserPlusIcon, PencilSquareIcon, TrashIcon } from './icons/DashboardIcons';
 
-interface UserManagementProps {
-    currentUser: User;
-    users: User[];
-    schools: School[];
-    reports: Report[];
-    onUsersUpdate: (updatedUsers: User[]) => void;
-}
-
-const UserManagement: React.FC<UserManagementProps> = ({ currentUser, users, schools, reports, onUsersUpdate }) => {
+const UserManagement: React.FC = () => {
+    const { currentUser, users, schools, reports, updateUsers } = useData();
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingUser, setEditingUser] = useState<User | null>(null);
 
@@ -26,7 +20,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ currentUser, users, sch
     };
 
     const handleDeleteUser = (userId: string) => {
-        if (userId === currentUser.id) {
+        if (currentUser && userId === currentUser.id) {
             alert("You cannot remove your own account.");
             return;
         }
@@ -34,7 +28,6 @@ const UserManagement: React.FC<UserManagementProps> = ({ currentUser, users, sch
         const userToDelete = users.find(u => u.id === userId);
         if (!userToDelete) return;
 
-        // Prevent deleting the last user for a school
         if (userToDelete.role === UserRole.SCHOOL && userToDelete.schoolName) {
             const schoolUsers = users.filter(
                 u => u.role === UserRole.SCHOOL && u.schoolName === userToDelete.schoolName
@@ -46,15 +39,15 @@ const UserManagement: React.FC<UserManagementProps> = ({ currentUser, users, sch
         }
 
         if (window.confirm(`Are you sure you want to remove the user "${userToDelete.name}"? This action cannot be undone.`)) {
-            onUsersUpdate(users.filter(u => u.id !== userId));
+            updateUsers(users.filter(u => u.id !== userId));
         }
     };
 
     const handleSaveUser = (userToSave: User) => {
         if (editingUser) {
-            onUsersUpdate(users.map(u => u.id === userToSave.id ? userToSave : u));
+            updateUsers(users.map(u => u.id === userToSave.id ? userToSave : u));
         } else {
-            onUsersUpdate([...users, { ...userToSave, id: `user-${new Date().getTime()}` }]);
+            updateUsers([...users, { ...userToSave, id: `user-${new Date().getTime()}` }]);
         }
         setIsModalOpen(false);
         setEditingUser(null);

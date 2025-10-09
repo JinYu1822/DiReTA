@@ -1,16 +1,12 @@
-
-
 import React, { useState, useMemo } from 'react';
-import { AppData, Submission, DisplayComplianceStatus } from '../types';
-import { CheckCircleIcon, XCircleIcon, ClockIcon, DocumentMinusIcon, ExclamationTriangleIcon } from './icons/StatusIcons';
-import { ChevronDownIcon } from './icons/DashboardIcons';
-import { ChevronUpDownIcon } from './icons/DashboardIcons';
-
+import { useData } from '../contexts/DataContext';
+import { Submission, DisplayComplianceStatus } from '../types';
+import { getDisplayStatus } from '../utils/complianceUtils';
+import { CheckCircleIcon, XCircleIcon, ClockIcon, DocumentMinusIcon } from './icons/StatusIcons';
+import { ChevronDownIcon, ChevronUpDownIcon } from './icons/DashboardIcons';
 
 interface ComplianceTableProps {
-  data: AppData;
   performanceData: { schoolId: string; name: string; onTimeRate: number; nonComplianceRate: number; overdueAverage: number; }[];
-  getDisplayStatus: (submission: Submission | undefined, reportDeadline: string) => DisplayComplianceStatus;
 }
 
 const StatusCell: React.FC<{ status: DisplayComplianceStatus }> = ({ status }) => {
@@ -30,15 +26,13 @@ const StatusCell: React.FC<{ status: DisplayComplianceStatus }> = ({ status }) =
     );
   };
   
-
-const ComplianceTable: React.FC<ComplianceTableProps> = ({ data, performanceData, getDisplayStatus }) => {
-  const { schools, reports, submissions } = data;
+const ComplianceTable: React.FC<ComplianceTableProps> = ({ performanceData }) => {
+  const { schools, reports, submissions } = useData();
   const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'ascending' | 'descending' }>({ key: 'schoolName', direction: 'ascending' });
 
   const activeReports = useMemo(() => {
+    if (!reports || !schools || !submissions) return [];
     return reports.filter(report => {
-        // A report is considered "active" and should be displayed if at least one school
-        // has a status of Pending or Overdue for it.
         const isStillActive = schools.some(school => {
             const submission = submissions.find(s => s.schoolId === school.id && s.reportId === report.id);
             const status = getDisplayStatus(submission, report.deadline);
@@ -46,18 +40,16 @@ const ComplianceTable: React.FC<ComplianceTableProps> = ({ data, performanceData
         });
         return isStillActive;
     });
-  }, [reports, schools, submissions, getDisplayStatus]);
+  }, [reports, schools, submissions]);
 
   const requestSort = (key: string) => {
     let direction: 'ascending' | 'descending' = 'ascending';
     
-    // Default to descending for numeric columns for better initial view
     if (['onTimeRate', 'nonComplianceRate', 'overdueAverage'].includes(key)) {
       direction = 'descending';
     }
 
     if (sortConfig.key === key) {
-      // Toggle direction if same key is clicked
       direction = sortConfig.direction === 'ascending' ? 'descending' : 'ascending';
     }
     
@@ -65,6 +57,8 @@ const ComplianceTable: React.FC<ComplianceTableProps> = ({ data, performanceData
   };
 
   const sortedSchools = useMemo(() => {
+    if (!schools || !reports || !submissions) return [];
+
     const statusOrder: Record<DisplayComplianceStatus, number> = {
         [DisplayComplianceStatus.OVERDUE]: 1,
         [DisplayComplianceStatus.PENDING]: 2,
@@ -88,7 +82,6 @@ const ComplianceTable: React.FC<ComplianceTableProps> = ({ data, performanceData
             return valA - valB;
         }
         
-        // Handle sorting by report status
         const report = reports.find(r => r.id === sortConfig.key);
         if (report) {
             const submissionA = submissions.find(s => s.schoolId === a.id && s.reportId === report.id);
@@ -104,8 +97,7 @@ const ComplianceTable: React.FC<ComplianceTableProps> = ({ data, performanceData
     });
 
     return sortConfig.direction === 'descending' ? sortableSchools.reverse() : sortableSchools;
-  }, [schools, reports, submissions, performanceData, sortConfig, getDisplayStatus]);
-
+  }, [schools, reports, submissions, performanceData, sortConfig]);
 
   const SortableHeader: React.FC<{ sortKey: string; title: string; className?: string; titleAttribute?: string }> = ({ sortKey, title, className, titleAttribute }) => {
     const isSorted = sortConfig.key === sortKey;
@@ -124,7 +116,6 @@ const ComplianceTable: React.FC<ComplianceTableProps> = ({ data, performanceData
       </th>
     );
   };
-
 
   return (
     <table className="min-w-full divide-y divide-gray-200 border border-gray-200">
@@ -145,7 +136,6 @@ const ComplianceTable: React.FC<ComplianceTableProps> = ({ data, performanceData
           <SortableHeader sortKey="onTimeRate" title="On-Time %" className="text-center" titleAttribute="On-Time Compliance Rate" />
           <SortableHeader sortKey="nonComplianceRate" title="Non-Comp %" className="text-center" titleAttribute="Non-Compliance Rate" />
           <SortableHeader sortKey="overdueAverage" title="Overdue Avg." className="text-center" titleAttribute="Average Days Overdue" />
-
           {activeReports.map(report => (
              <SortableHeader key={report.id} sortKey={report.id} title={report.title} className="text-center" titleAttribute={`Deadline: ${new Date(report.deadline).toLocaleDateString()}`}/>
           ))}

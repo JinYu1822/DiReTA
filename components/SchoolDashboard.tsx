@@ -1,13 +1,9 @@
 import React, { useMemo } from 'react';
-import { User, AppData, Submission, StoredComplianceStatus, DisplayComplianceStatus } from '../types';
+import { useData } from '../contexts/DataContext';
+import { StoredComplianceStatus, DisplayComplianceStatus } from '../types';
 import StatCard from './StatCard';
 import { CheckCircleIcon, XCircleIcon, ClockIcon, DocumentMinusIcon, ExclamationTriangleIcon } from './icons/StatusIcons';
 import { getDisplayStatus } from '../utils/complianceUtils';
-
-interface SchoolDashboardProps {
-  currentUser: User;
-  data: AppData;
-}
 
 const StatusBadge: React.FC<{ status: DisplayComplianceStatus }> = ({ status }) => {
   const styles = {
@@ -27,9 +23,9 @@ const StatusBadge: React.FC<{ status: DisplayComplianceStatus }> = ({ status }) 
   );
 };
 
-const SchoolDashboard: React.FC<SchoolDashboardProps> = ({ currentUser, data }) => {
-  const { schools, reports, submissions } = data;
-  const school = schools.find(s => s.name === currentUser.schoolName);
+const SchoolDashboard: React.FC = () => {
+  const { currentUser, schools, reports, submissions } = useData();
+  const school = schools.find(s => s.name === currentUser?.schoolName);
 
   const isUrl = (text: string) => {
     if (typeof text !== 'string') return false;
