@@ -147,7 +147,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentUser, data, onSu
 
   const availableTabs = [
     { id: 'dashboard', label: 'Dashboard', roles: [UserRole.ADMIN, UserRole.MODERATOR] },
-    { id: 'tagging', label: 'Report Tagging Tool', roles: [UserRole.ADMIN, UserRole.MODERATOR] },
+    { id: 'tagging', label: 'Report Summary View', roles: [UserRole.ADMIN, UserRole.MODERATOR] },
     { id: 'userManagement', label: 'User Management', roles: [UserRole.ADMIN] },
     { id: 'automation', label: 'Automation', roles: [UserRole.ADMIN] }
   ];

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { AppData, StoredComplianceStatus, User, UserRole, DisplayComplianceStatus } from '../types';
+import { AppData, User, UserRole, DisplayComplianceStatus } from '../types';
 import { getDisplayStatus } from '../utils/complianceUtils';
 import { CheckCircleIcon, XCircleIcon, ClockIcon, DocumentMinusIcon } from './icons/StatusIcons';
 
@@ -17,6 +17,24 @@ const StatusCounter: React.FC<{ icon: React.ReactNode; text: string; count: numb
         </div>
     </div>
 );
+
+const StatusBadge: React.FC<{ status: DisplayComplianceStatus }> = ({ status }) => {
+    const styles = {
+      [DisplayComplianceStatus.SUBMITTED_ON_TIME]: { text: 'Submitted (On Time)', color: 'text-green-800 bg-green-100', icon: <CheckCircleIcon /> },
+      [DisplayComplianceStatus.SUBMITTED_LATE]: { text: 'Submitted (Late)', color: 'text-yellow-800 bg-yellow-100', icon: <CheckCircleIcon /> },
+      [DisplayComplianceStatus.OVERDUE]: { text: 'Overdue', color: 'text-red-800 bg-red-100', icon: <XCircleIcon /> },
+      [DisplayComplianceStatus.PENDING]: { text: 'Pending', color: 'text-blue-800 bg-blue-100', icon: <ClockIcon /> },
+      [DisplayComplianceStatus.NOT_APPLICABLE]: { text: 'Not Applicable', color: 'text-gray-800 bg-gray-100', icon: <DocumentMinusIcon /> },
+    };
+    const style = styles[status];
+  
+    return (
+      <span className={`inline-flex items-center gap-x-1.5 rounded-full px-2 py-1 text-xs font-medium ${style.color}`}>
+        {style.icon}
+        {style.text}
+      </span>
+    );
+  };
 
 const ReportTaggingTool: React.FC<ReportTaggingToolProps> = ({ currentUser, data }) => {
     const { schools, reports, submissions } = data;
@@ -72,17 +90,21 @@ const ReportTaggingTool: React.FC<ReportTaggingToolProps> = ({ currentUser, data
 
     const schoolStatuses = useMemo(() => {
         if (!selectedReportId) return [];
+
+        const selectedReport = reports.find(r => r.id === selectedReportId);
+        if (!selectedReport) return [];
+
         return schools.map(school => {
             const submission = submissions.find(s => s.schoolId === school.id && s.reportId === selectedReportId);
             return {
                 schoolId: school.id,
                 schoolName: school.name,
-                status: submission?.status || 'Pending',
+                status: getDisplayStatus(submission, selectedReport.deadline),
                 submissionDate: submission?.submissionDate || null,
                 remarks: submission?.remarks || ''
             };
         }).sort((a, b) => a.schoolName.localeCompare(b.schoolName));
-    }, [selectedReportId, schools, submissions]);
+    }, [selectedReportId, schools, submissions, reports]);
     
     const selectedReport = reports.find(r => r.id === selectedReportId);
 
@@ -128,14 +150,16 @@ const ReportTaggingTool: React.FC<ReportTaggingToolProps> = ({ currentUser, data
                         </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
-                        {schoolStatuses.map((status) => (
-                            <tr key={status.schoolId}>
-                                <td className="px-4 py-3 font-medium text-gray-900">{status.schoolName}</td>
-                                <td className="px-4 py-3 text-sm text-gray-700">{status.status}</td>
+                        {schoolStatuses.map((schoolStatus) => (
+                            <tr key={schoolStatus.schoolId}>
+                                <td className="px-4 py-3 font-medium text-gray-900">{schoolStatus.schoolName}</td>
                                 <td className="px-4 py-3 text-sm text-gray-700">
-                                    {status.submissionDate ? new Date(status.submissionDate).toLocaleDateString() : '—'}
+                                    <StatusBadge status={schoolStatus.status} />
                                 </td>
-                                <td className="px-4 py-3 text-sm text-gray-700">{status.remarks || '—'}</td>
+                                <td className="px-4 py-3 text-sm text-gray-700">
+                                    {schoolStatus.submissionDate ? new Date(schoolStatus.submissionDate).toLocaleDateString() : '—'}
+                                </td>
+                                <td className="px-4 py-3 text-sm text-gray-700">{schoolStatus.remarks || '—'}</td>
                             </tr>
                         ))}
                     </tbody>
@@ -149,25 +173,6 @@ const ReportTaggingTool: React.FC<ReportTaggingToolProps> = ({ currentUser, data
             <div>
                 <h2 className="text-xl font-semibold">Report Submission Viewer</h2>
                 <p className="text-sm text-gray-600 mt-1">This is a read-only view of the submission data from the Google Sheet.</p>
-            </div>
-            
-            <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                <h3 className="text-lg font-semibold text-blue-800 mb-2">How to Update Submission Data</h3>
-                <div className="text-sm text-blue-700 space-y-2">
-                    <p>All data for report submissions must now be updated directly in the Google Sheet database. Changes will automatically appear here within a minute.</p>
-                    <ol className="list-decimal list-inside space-y-1 pl-2">
-                        <li>Open the Google Sheet and navigate to the <strong>"Submissions"</strong> sheet.</li>
-                        <li>To add or update an entry, find or create the correct row and fill in the columns:
-                            <ul className="list-disc list-inside pl-6 mt-1 text-xs">
-                                <li><strong>schoolId & reportId:</strong> Copy these IDs from the "Schools" and "Reports" sheets. They must be an exact match.</li>
-                                <li><strong>status:</strong> Must be either <code className="bg-blue-100 p-1 rounded">Submitted</code> or <code className="bg-blue-100 p-1 rounded">Not Applicable</code>. Leave the cell blank for "Pending".</li>
-                                <li><strong>submissionDate:</strong> Must be in <code className="bg-blue-100 p-1 rounded">YYYY-MM-DD</code> format. This is only required if the status is "Submitted".</li>
-                                <li><strong>remarks:</strong> Add any relevant notes here.</li>
-                            </ul>
-                        </li>
-                         <li>To revert a submission to "Pending", simply delete the entire row for that school/report combination from the "Submissions" sheet.</li>
-                    </ol>
-                </div>
             </div>
 
             <div className="flex flex-col md:flex-row md:items-center gap-4">
