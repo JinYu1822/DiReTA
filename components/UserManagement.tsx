@@ -8,7 +8,7 @@ interface UserManagementProps {
     users: User[];
     schools: School[];
     reports: Report[];
-    onUsersUpdate: (updatedUsers: User[]) => void;
+    onUsersUpdate: (updatedUsers: User[]) => Promise<void>;
 }
 
 const UserManagement: React.FC<UserManagementProps> = ({ currentUser, users, schools, reports, onUsersUpdate }) => {
@@ -46,16 +46,23 @@ const UserManagement: React.FC<UserManagementProps> = ({ currentUser, users, sch
         }
 
         if (window.confirm(`Are you sure you want to remove the user "${userToDelete.name}"? This action cannot be undone.`)) {
+             // We don't need a try/catch here because if it fails, the global handler will
+             // show a notification and refresh the data, reverting the optimistic delete.
             onUsersUpdate(users.filter(u => u.id !== userId));
         }
     };
 
-    const handleSaveUser = (userToSave: User) => {
-        if (editingUser) {
-            onUsersUpdate(users.map(u => u.id === userToSave.id ? userToSave : u));
-        } else {
-            onUsersUpdate([...users, { ...userToSave, id: `user-${new Date().getTime()}` }]);
-        }
+    const handleSaveUser = async (userToSave: User) => {
+        // This function is passed to UserForm's onSave prop and is expected to throw on failure.
+        const userWithId = userToSave.id ? userToSave : { ...userToSave, id: `user-${new Date().getTime()}` };
+
+        const updatedUsers = editingUser
+            ? users.map(u => (u.id === userWithId.id ? userWithId : u))
+            : [...users, userWithId];
+
+        await onUsersUpdate(updatedUsers); // This will throw on error, handled by UserForm
+
+        // This part only runs on success
         setIsModalOpen(false);
         setEditingUser(null);
     };

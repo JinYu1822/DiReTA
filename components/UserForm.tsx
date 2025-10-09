@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { User, School, Report, UserRole } from '../types';
+import Spinner from './Spinner';
 
 interface UserFormProps {
     userToEdit: User | null;
-    onSave: (user: User) => void;
+    onSave: (user: User) => Promise<void>;
     onCancel: () => void;
     schools: School[];
     reports: Report[];
@@ -21,6 +22,8 @@ const UserForm: React.FC<UserFormProps> = ({ userToEdit, onSave, onCancel, schoo
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
     const [error, setError] = useState<string | null>(null);
+    const [isSaving, setIsSaving] = useState(false);
+
 
     useEffect(() => {
         if (userToEdit) {
@@ -64,7 +67,7 @@ const UserForm: React.FC<UserFormProps> = ({ userToEdit, onSave, onCancel, schoo
             setError('Please enter a valid email address.');
             return false;
         }
-        const isEmailTaken = existingUsers.some(user => user.email === formData.email && user.id !== formData.id);
+        const isEmailTaken = existingUsers.some(user => user.email?.toLowerCase() === formData.email?.toLowerCase() && user.id !== formData.id);
         if (isEmailTaken) {
             setError('This email address is already in use.');
             return false;
@@ -85,14 +88,24 @@ const UserForm: React.FC<UserFormProps> = ({ userToEdit, onSave, onCancel, schoo
         return true;
     }
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (validateForm()) {
-            const finalUserData = { ...formData };
-            if (password) {
-                finalUserData.password = password;
+            setIsSaving(true);
+            try {
+                const finalUserData = { ...formData };
+                if (password) {
+                    finalUserData.password = password;
+                }
+                await onSave(finalUserData as User);
+                // onSave will close the modal on success, nothing more to do here.
+            } catch (error) {
+                // The global notification in App.tsx will show the error.
+                // The form remains open for the user to try again.
+                console.error("Failed to save user in form:", error);
+            } finally {
+                setIsSaving(false);
             }
-            onSave(finalUserData as User);
         }
     };
 
@@ -152,7 +165,13 @@ const UserForm: React.FC<UserFormProps> = ({ userToEdit, onSave, onCancel, schoo
                     {error && <p className="text-sm text-red-600">{error}</p>}
                     <div className="mt-8 flex justify-end space-x-3">
                         <button type="button" onClick={onCancel} className="bg-gray-200 text-gray-800 px-4 py-2 rounded-md hover:bg-gray-300 font-medium">Cancel</button>
-                        <button type="submit" className="bg-brand-blue text-white px-4 py-2 rounded-md hover:bg-brand-blue-light font-medium">Save User</button>
+                        <button 
+                            type="submit" 
+                            disabled={isSaving}
+                            className="bg-brand-blue text-white px-4 py-2 rounded-md hover:bg-brand-blue-light font-medium min-w-[110px] flex justify-center items-center disabled:bg-indigo-400"
+                        >
+                           {isSaving ? <Spinner className="h-5 w-5 border-b-2 border-white" /> : 'Save User'}
+                        </button>
                     </div>
                 </form>
             </div>

@@ -12,17 +12,29 @@ import { getDisplayStatus } from '../utils/complianceUtils';
 interface AdminDashboardProps {
   currentUser: User;
   data: AppData;
-  onSubmissionsUpdate: (updatedSubmissions: Submission[]) => void;
-  onUsersUpdate: (updatedUsers: User[]) => void;
-  onReportsUpdate: (updatedReports: Report[]) => void;
+  onSubmissionsUpdate: (updatedSubmissions: Submission[]) => Promise<void>;
+  onUsersUpdate: (updatedUsers: User[]) => Promise<void>;
+  onReportsUpdate: (updatedReports: Report[]) => Promise<void>;
 }
 
 const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentUser, data, onSubmissionsUpdate, onUsersUpdate, onReportsUpdate }) => {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [isPromptSubmittersOpen, setIsPromptSubmittersOpen] = useState(false);
   const [isFrequentLateOpen, setIsFrequentLateOpen] = useState(false);
+  const [highlightedSchoolId, setHighlightedSchoolId] = useState<string | null>(null);
   
   const { schools, reports, submissions, users } = data;
+
+  const handleHighlightSchool = (schoolId: string) => {
+    const schoolRow = document.getElementById(`school-row-${schoolId}`);
+    if (schoolRow) {
+      schoolRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      setHighlightedSchoolId(schoolId);
+      setTimeout(() => {
+        setHighlightedSchoolId(null);
+      }, 3000); // Highlight for 3 seconds
+    }
+  };
 
   const performanceData = useMemo(() => {
     const schoolMetrics = schools.map(school => {
@@ -65,8 +77,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentUser, data, onSu
         }
       });
       
-      const onTimeRate = (onTimeCount / applicableReports.length) * 100;
-      const nonComplianceRate = (lateOrOverdueCount / applicableReports.length) * 100;
+      const onTimeRate = applicableReports.length > 0 ? (onTimeCount / applicableReports.length) * 100 : 0;
+      const nonComplianceRate = applicableReports.length > 0 ? (lateOrOverdueCount / applicableReports.length) * 100 : 0;
       const overdueAverage = reportsPastDeadlineCount > 0 ? totalDaysPastDeadline / reportsPastDeadlineCount : 0;
       
       return { schoolId: school.id, name: school.name, onTimeRate, nonComplianceRate, lateOrOverdueCount, reportCount: applicableReports.length, overdueAverage };
@@ -174,58 +186,70 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentUser, data, onSu
               <div className="bg-white rounded-lg shadow-md">
                 <button
                     onClick={() => setIsPromptSubmittersOpen(!isPromptSubmittersOpen)}
-                    className="w-full flex justify-between items-center p-6 text-left"
+                    className="w-full flex justify-between items-center p-6 text-left hover:bg-gray-50 rounded-t-lg transition-colors"
                     aria-expanded={isPromptSubmittersOpen}
                     aria-controls="prompt-submitters-list"
                 >
-                    <h3 className="text-lg font-semibold text-gray-800">
-                        Prompt Submitters
-                        <span className="ml-2 font-normal text-gray-500 bg-gray-100 px-2 py-1 rounded-full text-sm">
-                            {performanceData.promptSubmitters.length}
-                        </span>
-                    </h3>
-                    <ChevronDownIcon className={`w-5 h-5 text-gray-500 transform transition-transform ${isPromptSubmittersOpen ? 'rotate-180' : ''}`} />
+                    <div>
+                        <h3 className="text-lg font-semibold text-gray-800">
+                            Prompt Submitters
+                            <span className="ml-2 font-normal text-gray-500 bg-gray-100 px-2 py-1 rounded-full text-sm">
+                                {performanceData.promptSubmitters.length}
+                            </span>
+                        </h3>
+                        <p className="text-xs text-gray-500 mt-1">On-time rate {'>='} 80% with at least 3 reports submitted.</p>
+                    </div>
+                    <ChevronDownIcon className={`w-5 h-5 text-gray-500 transform transition-transform duration-300 ${isPromptSubmittersOpen ? 'rotate-180' : ''}`} />
                 </button>
-                {isPromptSubmittersOpen && (
-                    <div id="prompt-submitters-list" className="px-6 pb-6">
-                        <ul className="space-y-2 border-t pt-4">
+                <div id="prompt-submitters-list" className={`transition-all duration-500 ease-in-out overflow-hidden ${isPromptSubmittersOpen ? 'max-h-96' : 'max-h-0'}`}>
+                    <div className="px-6 pb-6 pt-0">
+                        <ul className="space-y-1 border-t pt-4">
                             {performanceData.promptSubmitters.length > 0 ? performanceData.promptSubmitters.map(s => (
-                                <li key={s.schoolId} className="flex justify-between items-center text-sm">
+                                <li key={s.schoolId} 
+                                    className="flex justify-between items-center text-sm p-2 rounded-md cursor-pointer hover:bg-gray-100 transition-colors"
+                                    onClick={() => handleHighlightSchool(s.schoolId)}
+                                >
                                 <span>{s.name}</span>
                                 <span className="font-semibold text-green-600">{s.onTimeRate.toFixed(0)}% On-Time</span>
                                 </li>
-                            )) : <p className="text-sm text-gray-500">No schools meet the criteria yet.</p>}
+                            )) : <p className="text-sm text-gray-500 px-2">No schools meet the criteria yet.</p>}
                         </ul>
                     </div>
-                )}
+                </div>
               </div>
               <div className="bg-white rounded-lg shadow-md">
                 <button
                     onClick={() => setIsFrequentLateOpen(!isFrequentLateOpen)}
-                    className="w-full flex justify-between items-center p-6 text-left"
+                    className="w-full flex justify-between items-center p-6 text-left hover:bg-gray-50 rounded-t-lg transition-colors"
                     aria-expanded={isFrequentLateOpen}
                     aria-controls="frequent-late-list"
                 >
-                    <h3 className="text-lg font-semibold text-gray-800">
-                      Frequent Late/Overdue
-                      <span className="ml-2 font-normal text-gray-500 bg-gray-100 px-2 py-1 rounded-full text-sm">
-                          {performanceData.frequentLate.length}
-                      </span>
-                    </h3>
-                    <ChevronDownIcon className={`w-5 h-5 text-gray-500 transform transition-transform ${isFrequentLateOpen ? 'rotate-180' : ''}`} />
+                    <div>
+                      <h3 className="text-lg font-semibold text-gray-800">
+                        Frequent Late/Overdue
+                        <span className="ml-2 font-normal text-gray-500 bg-gray-100 px-2 py-1 rounded-full text-sm">
+                            {performanceData.frequentLate.length}
+                        </span>
+                      </h3>
+                      <p className="text-xs text-gray-500 mt-1">At least 2 reports submitted late or are currently overdue.</p>
+                    </div>
+                    <ChevronDownIcon className={`w-5 h-5 text-gray-500 transform transition-transform duration-300 ${isFrequentLateOpen ? 'rotate-180' : ''}`} />
                 </button>
-                {isFrequentLateOpen && (
-                    <div id="frequent-late-list" className="px-6 pb-6">
-                      <ul className="space-y-2 border-t pt-4">
+                <div id="frequent-late-list" className={`transition-all duration-500 ease-in-out overflow-hidden ${isFrequentLateOpen ? 'max-h-96' : 'max-h-0'}`}>
+                    <div className="px-6 pb-6 pt-0">
+                      <ul className="space-y-1 border-t pt-4">
                         {performanceData.frequentLate.length > 0 ? performanceData.frequentLate.map(s => (
-                          <li key={s.schoolId} className="flex justify-between items-center text-sm">
+                          <li key={s.schoolId} 
+                              className="flex justify-between items-center text-sm p-2 rounded-md cursor-pointer hover:bg-gray-100 transition-colors"
+                              onClick={() => handleHighlightSchool(s.schoolId)}
+                          >
                             <span>{s.name}</span>
                             <span className="font-semibold text-red-600">{s.lateOrOverdueCount} Late/Overdue</span>
                           </li>
-                        )) : <p className="text-sm text-gray-500">No schools are frequently late.</p>}
+                        )) : <p className="text-sm text-gray-500 px-2">No schools are frequently late.</p>}
                       </ul>
                     </div>
-                )}
+                </div>
               </div>
             </div>
 
@@ -249,7 +273,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentUser, data, onSu
                 <div className="flex items-center gap-1"><ClockIcon className="w-4 h-4 text-blue-500" /> Pending</div>
                 <div className="flex items-center gap-1"><DocumentMinusIcon className="w-4 h-4 text-gray-500" /> N/A</div>
               </div>
-              <ComplianceTable data={data} performanceData={performanceData.schoolMetrics} getDisplayStatus={getDisplayStatus}/>
+              <ComplianceTable data={data} performanceData={performanceData.schoolMetrics} getDisplayStatus={getDisplayStatus} highlightedSchoolId={highlightedSchoolId} />
             </div>
           </div>
         );

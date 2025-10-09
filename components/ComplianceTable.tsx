@@ -1,5 +1,3 @@
-
-
 import React, { useState, useMemo } from 'react';
 import { AppData, Submission, DisplayComplianceStatus } from '../types';
 import { CheckCircleIcon, XCircleIcon, ClockIcon, DocumentMinusIcon, ExclamationTriangleIcon } from './icons/StatusIcons';
@@ -11,6 +9,7 @@ interface ComplianceTableProps {
   data: AppData;
   performanceData: { schoolId: string; name: string; onTimeRate: number; nonComplianceRate: number; overdueAverage: number; }[];
   getDisplayStatus: (submission: Submission | undefined, reportDeadline: string) => DisplayComplianceStatus;
+  highlightedSchoolId: string | null;
 }
 
 const StatusCell: React.FC<{ status: DisplayComplianceStatus }> = ({ status }) => {
@@ -31,7 +30,7 @@ const StatusCell: React.FC<{ status: DisplayComplianceStatus }> = ({ status }) =
   };
   
 
-const ComplianceTable: React.FC<ComplianceTableProps> = ({ data, performanceData, getDisplayStatus }) => {
+const ComplianceTable: React.FC<ComplianceTableProps> = ({ data, performanceData, getDisplayStatus, highlightedSchoolId }) => {
   const { schools, reports, submissions } = data;
   const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'ascending' | 'descending' }>({ key: 'schoolName', direction: 'ascending' });
 
@@ -155,8 +154,12 @@ const ComplianceTable: React.FC<ComplianceTableProps> = ({ data, performanceData
         {sortedSchools.map(school => {
             const perf = performanceData.find(p => p.schoolId === school.id);
             return (
-          <tr key={school.id}>
-            <td className="px-6 py-4 text-sm font-medium text-gray-900 sticky left-0 bg-white z-10 truncate max-w-40 sm:max-w-64" title={school.name}>{school.name}</td>
+          <tr 
+            key={school.id}
+            id={`school-row-${school.id}`}
+            className={`transition-colors duration-500 ${highlightedSchoolId === school.id ? 'bg-blue-100' : ''}`}
+          >
+            <td className={`px-6 py-4 text-sm font-medium text-gray-900 sticky left-0 z-10 truncate max-w-40 sm:max-w-64 transition-colors duration-500 ${highlightedSchoolId === school.id ? 'bg-blue-100' : 'bg-white'}`} title={school.name}>{school.name}</td>
             <td className="px-3 py-4 whitespace-nowrap text-sm text-center font-semibold text-green-600">{perf ? perf.onTimeRate.toFixed(0) + '%' : 'N/A'}</td>
             <td className="px-3 py-4 whitespace-nowrap text-sm text-center font-semibold text-red-600">{perf ? perf.nonComplianceRate.toFixed(0) + '%' : 'N/A'}</td>
             <td className="px-3 py-4 whitespace-nowrap text-sm text-center font-semibold text-gray-700">{perf ? perf.overdueAverage.toFixed(1) : 'N/A'}</td>
