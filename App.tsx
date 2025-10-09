@@ -30,12 +30,32 @@ const App: React.FC = () => {
     }
     setError(null);
     try {
-      const [fetchedUsers, fetchedSchools, fetchedReports, fetchedSubmissions] = await Promise.all([
+      // Fetch raw data which might have mismatched property names from Google Sheets headers.
+      const [fetchedUsers, fetchedSchools, rawReports, rawSubmissions] = await Promise.all([
         getUsers(),
         getSchools(),
         getReports(),
         getSubmissions(),
       ]);
+
+      // Sanitize and map the raw data to the expected TypeScript interfaces.
+      // This handles the 'reportID' vs 'id'/'reportId' casing mismatch.
+      const fetchedReports: Report[] = (rawReports as any[]).map(r => ({
+        id: r.reportID || r.id,
+        title: r.title,
+        focalPerson: r.focalPerson,
+        deadline: r.deadline,
+        modeOfSubmission: r.modeOfSubmission,
+      })).filter(r => r.id); // Filter out any malformed reports without an ID.
+
+      const fetchedSubmissions: Submission[] = (rawSubmissions as any[]).map(s => ({
+        schoolId: s.schoolId,
+        reportId: s.reportID || s.reportId,
+        status: s.status,
+        submissionDate: s.submissionDate,
+        remarks: s.remarks,
+      })).filter(s => s.schoolId && s.reportId); // Filter out any malformed submissions.
+
       setUsers(fetchedUsers);
       setSchools(fetchedSchools);
       setReports(fetchedReports);
@@ -53,7 +73,7 @@ const App: React.FC = () => {
           }
       }
     } catch (err) {
-      setError('Failed to load application data.');
+      setError('Failed to load application data. There might be an issue with the Google Sheet connection or data format.');
       console.error(err);
     } finally {
       if (!isBackgroundRefresh) {
