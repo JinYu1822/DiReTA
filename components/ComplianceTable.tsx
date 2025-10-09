@@ -110,7 +110,7 @@ const ComplianceTable: React.FC<ComplianceTableProps> = ({ data, performanceData
     const isSorted = sortConfig.key === sortKey;
     return (
       <th scope="col" className={`px-3 py-3 text-xs font-bold text-gray-600 uppercase tracking-wider bg-gray-50 ${className}`} title={titleAttribute}>
-        <button onClick={() => requestSort(sortKey)} className="group flex items-center justify-center w-full gap-2">
+        <button onClick={() => requestSort(sortKey)} className="group flex items-start justify-center w-full gap-2">
             <span>{title}</span>
             <span className={isSorted ? 'opacity-100' : 'opacity-0 group-hover:opacity-100 transition-opacity'}>
                 {isSorted ? (
@@ -146,7 +146,7 @@ const ComplianceTable: React.FC<ComplianceTableProps> = ({ data, performanceData
           <SortableHeader sortKey="overdueAverage" title="Overdue Avg." className="text-center" titleAttribute="Average Days Overdue" />
 
           {activeReports.map(report => (
-             <SortableHeader key={report.id} sortKey={report.id} title={report.title} className="text-center" titleAttribute={`Deadline: ${new Date(report.deadline).toLocaleDateString()}`}/>
+             <SortableHeader key={report.id} sortKey={report.id} title={report.title} className="text-center w-36 whitespace-normal" titleAttribute={`Deadline: ${new Date(report.deadline).toLocaleDateString()}`}/>
           ))}
         </tr>
       </thead>

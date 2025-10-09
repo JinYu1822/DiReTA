@@ -192,19 +192,19 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentUser, data, onSu
                 >
                     <div>
                         <h3 className="text-lg font-semibold text-gray-800">
-                            Prompt Submitters
+                            Top 5 Prompt Submitters
                             <span className="ml-2 font-normal text-gray-500 bg-gray-100 px-2 py-1 rounded-full text-sm">
                                 {performanceData.promptSubmitters.length}
                             </span>
                         </h3>
-                        <p className="text-xs text-gray-500 mt-1">On-time rate {'>='} 80% with at least 3 reports submitted.</p>
+                        <p className="text-xs text-gray-500 mt-1">Schools with the highest on-time rates ({'>='} 80%, min. 3 reports).</p>
                     </div>
                     <ChevronDownIcon className={`w-5 h-5 text-gray-500 transform transition-transform duration-300 ${isPromptSubmittersOpen ? 'rotate-180' : ''}`} />
                 </button>
                 <div id="prompt-submitters-list" className={`transition-all duration-500 ease-in-out overflow-hidden ${isPromptSubmittersOpen ? 'max-h-96' : 'max-h-0'}`}>
                     <div className="px-6 pb-6 pt-0">
                         <ul className="space-y-1 border-t pt-4">
-                            {performanceData.promptSubmitters.length > 0 ? performanceData.promptSubmitters.map(s => (
+                            {performanceData.promptSubmitters.length > 0 ? performanceData.promptSubmitters.slice(0, 5).map(s => (
                                 <li key={s.schoolId} 
                                     className="flex justify-between items-center text-sm p-2 rounded-md cursor-pointer hover:bg-gray-100 transition-colors"
                                     onClick={() => handleHighlightSchool(s.schoolId)}
@@ -226,19 +226,19 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentUser, data, onSu
                 >
                     <div>
                       <h3 className="text-lg font-semibold text-gray-800">
-                        Frequent Late/Overdue
+                        Top 5 Frequent Late/Overdue
                         <span className="ml-2 font-normal text-gray-500 bg-gray-100 px-2 py-1 rounded-full text-sm">
                             {performanceData.frequentLate.length}
                         </span>
                       </h3>
-                      <p className="text-xs text-gray-500 mt-1">At least 2 reports submitted late or are currently overdue.</p>
+                      <p className="text-xs text-gray-500 mt-1">Schools with the most late or overdue reports (min. 2).</p>
                     </div>
                     <ChevronDownIcon className={`w-5 h-5 text-gray-500 transform transition-transform duration-300 ${isFrequentLateOpen ? 'rotate-180' : ''}`} />
                 </button>
                 <div id="frequent-late-list" className={`transition-all duration-500 ease-in-out overflow-hidden ${isFrequentLateOpen ? 'max-h-96' : 'max-h-0'}`}>
                     <div className="px-6 pb-6 pt-0">
                       <ul className="space-y-1 border-t pt-4">
-                        {performanceData.frequentLate.length > 0 ? performanceData.frequentLate.map(s => (
+                        {performanceData.frequentLate.length > 0 ? performanceData.frequentLate.slice(0, 5).map(s => (
                           <li key={s.schoolId} 
                               className="flex justify-between items-center text-sm p-2 rounded-md cursor-pointer hover:bg-gray-100 transition-colors"
                               onClick={() => handleHighlightSchool(s.schoolId)}
