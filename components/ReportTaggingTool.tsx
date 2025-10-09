@@ -1,10 +1,22 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { AppData, StoredComplianceStatus, User, UserRole } from '../types';
+import { AppData, StoredComplianceStatus, User, UserRole, DisplayComplianceStatus } from '../types';
+import { getDisplayStatus } from '../utils/complianceUtils';
+import { CheckCircleIcon, XCircleIcon, ClockIcon, DocumentMinusIcon } from './icons/StatusIcons';
 
 interface ReportTaggingToolProps {
     currentUser: User;
     data: AppData;
 }
+
+const StatusCounter: React.FC<{ icon: React.ReactNode; text: string; count: number; colorClass: string; }> = ({ icon, text, count, colorClass }) => (
+    <div className="flex items-center gap-2 text-sm">
+        <div className={`flex-shrink-0 ${colorClass}`}>{icon}</div>
+        <div className="flex items-baseline gap-1.5">
+            <span className="font-medium text-gray-700">{text}:</span>
+            <span className="font-bold text-lg text-gray-900">{count}</span>
+        </div>
+    </div>
+);
 
 const ReportTaggingTool: React.FC<ReportTaggingToolProps> = ({ currentUser, data }) => {
     const { schools, reports, submissions } = data;
@@ -31,6 +43,32 @@ const ReportTaggingTool: React.FC<ReportTaggingToolProps> = ({ currentUser, data
             setSelectedReportId('');
         }
     }, [visibleReports, selectedReportId]);
+    
+    const reportStatusCounts = useMemo(() => {
+        if (!selectedReportId) return null;
+
+        const selectedReport = reports.find(r => r.id === selectedReportId);
+        if (!selectedReport) return null;
+
+        const counts: Record<DisplayComplianceStatus, number> = {
+            [DisplayComplianceStatus.SUBMITTED_ON_TIME]: 0,
+            [DisplayComplianceStatus.SUBMITTED_LATE]: 0,
+            [DisplayComplianceStatus.OVERDUE]: 0,
+            [DisplayComplianceStatus.PENDING]: 0,
+            [DisplayComplianceStatus.NOT_APPLICABLE]: 0,
+        };
+
+        schools.forEach(school => {
+            const submission = submissions.find(s => s.schoolId === school.id && s.reportId === selectedReportId);
+            const status = getDisplayStatus(submission, selectedReport.deadline);
+            if (counts[status] !== undefined) {
+                counts[status]++;
+            }
+        });
+
+        return counts;
+    }, [selectedReportId, schools, reports, submissions]);
+
 
     const schoolStatuses = useMemo(() => {
         if (!selectedReportId) return [];
@@ -147,6 +185,19 @@ const ReportTaggingTool: React.FC<ReportTaggingToolProps> = ({ currentUser, data
                 </select>
                 {selectedReport && <span className="text-sm text-gray-500 flex-shrink-0">Deadline: {new Date(selectedReport.deadline).toLocaleDateString()}</span>}
             </div>
+            
+            {selectedReportId && reportStatusCounts && (
+                <div className="p-4 border rounded-lg bg-gray-50">
+                    <h4 className="text-sm font-semibold text-gray-600 mb-3 text-center">Current Status Overview</h4>
+                    <div className="flex flex-wrap gap-x-6 gap-y-3 justify-center">
+                        <StatusCounter icon={<CheckCircleIcon className="w-5 h-5"/>} text="On Time" count={reportStatusCounts[DisplayComplianceStatus.SUBMITTED_ON_TIME]} colorClass="text-green-500" />
+                        <StatusCounter icon={<CheckCircleIcon className="w-5 h-5"/>} text="Late" count={reportStatusCounts[DisplayComplianceStatus.SUBMITTED_LATE]} colorClass="text-yellow-500" />
+                        <StatusCounter icon={<XCircleIcon className="w-5 h-5"/>} text="Overdue" count={reportStatusCounts[DisplayComplianceStatus.OVERDUE]} colorClass="text-red-500" />
+                        <StatusCounter icon={<ClockIcon className="w-5 h-5"/>} text="Pending" count={reportStatusCounts[DisplayComplianceStatus.PENDING]} colorClass="text-blue-500" />
+                        <StatusCounter icon={<DocumentMinusIcon className="w-5 h-5"/>} text="N/A" count={reportStatusCounts[DisplayComplianceStatus.NOT_APPLICABLE]} colorClass="text-gray-500" />
+                    </div>
+                </div>
+            )}
 
             {renderContent()}
         </div>
