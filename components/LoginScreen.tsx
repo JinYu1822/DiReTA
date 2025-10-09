@@ -152,7 +152,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ users, onLogin }) => {
         
       </div>
       <footer className="absolute bottom-0 left-0 right-0 text-center py-4 text-xs text-gray-500">
-        Developed by: Kyle L. • Powered by AI
+        Developed by Kyle L. with AI assistance
       </footer>
     </div>
   );

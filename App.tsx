@@ -196,7 +196,7 @@ const App: React.FC = () => {
         </main>
       </div>
       <footer className="text-center py-4 text-xs text-gray-500">
-        Developed by: Kyle L. • Powered by AI
+        Developed by Kyle L. with AI assistance
       </footer>
     </div>
   );
