@@ -18,11 +18,17 @@ const ReportTaggingTool: React.FC<ReportTaggingToolProps> = ({ currentUser, data
 
     const [selectedReportId, setSelectedReportId] = useState<string>('');
 
-    // Effect to select the first report by default or if the selected one is no longer visible
     useEffect(() => {
         const isSelectedVisible = visibleReports.some(r => r.id === selectedReportId);
-        if ((!selectedReportId || !isSelectedVisible) && visibleReports.length > 0) {
+
+        // If there are visible reports but none is selected, or the selected one is no longer visible,
+        // default to the first one in the list.
+        if (visibleReports.length > 0 && (!selectedReportId || !isSelectedVisible)) {
             setSelectedReportId(visibleReports[0].id);
+        } 
+        // If there are no longer any visible reports, clear the selection.
+        else if (visibleReports.length === 0 && selectedReportId !== '') {
+            setSelectedReportId('');
         }
     }, [visibleReports, selectedReportId]);
 
@@ -37,10 +43,68 @@ const ReportTaggingTool: React.FC<ReportTaggingToolProps> = ({ currentUser, data
                 submissionDate: submission?.submissionDate || null,
                 remarks: submission?.remarks || ''
             };
-        });
+        }).sort((a, b) => a.schoolName.localeCompare(b.schoolName));
     }, [selectedReportId, schools, submissions]);
     
     const selectedReport = reports.find(r => r.id === selectedReportId);
+
+    const renderContent = () => {
+        if (reports.length === 0) {
+            return <div className="text-center p-8 border-t">
+                <h3 className="text-lg font-medium text-gray-800">No Reports Found</h3>
+                <p className="mt-2 text-sm text-gray-500">The application could not find any reports in the database. Please add report data to the "Reports" sheet in your Google Sheet.</p>
+            </div>;
+        }
+
+        if (currentUser.role === UserRole.MODERATOR && visibleReports.length === 0) {
+            return <div className="text-center p-8 border-t">
+                <h3 className="text-lg font-medium text-gray-800">No Reports Assigned</h3>
+                <p className="mt-2 text-sm text-gray-500">Your account has not been assigned any reports to manage. Please contact an administrator.</p>
+            </div>;
+        }
+
+        if (schools.length === 0) {
+            return <div className="text-center p-8 border-t">
+                <h3 className="text-lg font-medium text-gray-800">No Schools Found</h3>
+                <p className="mt-2 text-sm text-gray-500">The application could not find any schools in the database. Please add school data to the "Schools" sheet in your Google Sheet.</p>
+            </div>;
+        }
+
+        if (!selectedReportId) {
+            return (
+                 <div className="text-center p-8 border-t text-gray-500">
+                    Loading submission data...
+                </div>
+            )
+        }
+
+        return (
+            <div className="overflow-x-auto border rounded-lg">
+                <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gray-50">
+                        <tr>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">School</th>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Submission Date</th>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Remarks</th>
+                        </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                        {schoolStatuses.map((status) => (
+                            <tr key={status.schoolId}>
+                                <td className="px-4 py-3 font-medium text-gray-900">{status.schoolName}</td>
+                                <td className="px-4 py-3 text-sm text-gray-700">{status.status}</td>
+                                <td className="px-4 py-3 text-sm text-gray-700">
+                                    {status.submissionDate ? new Date(status.submissionDate).toLocaleDateString() : '—'}
+                                </td>
+                                <td className="px-4 py-3 text-sm text-gray-700">{status.remarks || '—'}</td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+            </div>
+        );
+    };
 
     return (
         <div className="bg-white p-6 rounded-lg shadow-md space-y-6">
@@ -79,40 +143,12 @@ const ReportTaggingTool: React.FC<ReportTaggingToolProps> = ({ currentUser, data
                 >
                     {visibleReports.length > 0 ? visibleReports.map(report => (
                         <option key={report.id} value={report.id}>{report.title}</option>
-                    )) : <option>No reports assigned or available.</option>}
+                    )) : <option>No reports available to view.</option>}
                 </select>
                 {selectedReport && <span className="text-sm text-gray-500 flex-shrink-0">Deadline: {new Date(selectedReport.deadline).toLocaleDateString()}</span>}
             </div>
 
-            <div className="overflow-x-auto border rounded-lg">
-                <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gray-50">
-                        <tr>
-                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">School</th>
-                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Submission Date</th>
-                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Remarks</th>
-                        </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                        {schoolStatuses.map((status) => (
-                            <tr key={status.schoolId}>
-                                <td className="px-4 py-3 font-medium text-gray-900">{status.schoolName}</td>
-                                <td className="px-4 py-3 text-sm text-gray-700">{status.status}</td>
-                                <td className="px-4 py-3 text-sm text-gray-700">
-                                    {status.submissionDate ? new Date(status.submissionDate).toLocaleDateString() : '—'}
-                                </td>
-                                <td className="px-4 py-3 text-sm text-gray-700">{status.remarks || '—'}</td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
-                 {schoolStatuses.length === 0 && (
-                    <div className="text-center p-4 text-gray-500">
-                        Please select a report to view its submission statuses.
-                    </div>
-                )}
-            </div>
+            {renderContent()}
         </div>
     );
 };
