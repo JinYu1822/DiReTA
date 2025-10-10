@@ -28,6 +28,9 @@ const saveData = async <T,>(action: string, payload: T): Promise<void> => {
         const response = await fetch(SCRIPT_URL, {
             method: 'POST',
             mode: 'cors',
+            headers: {
+                'Content-Type': 'application/json',
+            },
             body: JSON.stringify({ action, payload }),
             redirect: 'follow', // Required for Google Apps Script web apps
         });

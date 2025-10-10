@@ -35,7 +35,11 @@ const EmailAutomationSimulator: React.FC<EmailAutomationSimulatorProps> = ({ dat
                 schools.forEach(school => {
                     const submission = submissions.find(s => s.schoolId === school.id && s.reportId === report.id);
                     if (!submission || (submission.status !== StoredComplianceStatus.SUBMITTED && submission.status !== StoredComplianceStatus.NOT_APPLICABLE)) {
-                         const schoolUsers = users.filter(u => u.role === UserRole.SCHOOL && u.schoolName === school.name);
+                        const schoolUsers = users.filter(u => u.role === UserRole.SCHOOL && u.schoolName === school.name);
+                        if (schoolUsers.length === 0) {
+                            logs.push(`[SKIPPED] ${school.name} has a pending report ("${report.title}") but no registered users to notify.`);
+                            return; // Skips to next school in forEach
+                        }
                         schoolUsers.forEach(user => {
                             emailsPrepared++;
                             logs.push(`[REMINDER] Email prepared for ${user.email} (${school.name}) for report: "${report.title}".`);
@@ -64,8 +68,12 @@ const EmailAutomationSimulator: React.FC<EmailAutomationSimulatorProps> = ({ dat
 
                 if (schoolOverdueReports.length > 0) {
                     const schoolUsers = users.filter(u => u.role === UserRole.SCHOOL && u.schoolName === school.name);
+                    if (schoolUsers.length === 0) {
+                        logs.push(`[SKIPPED] ${school.name} has ${schoolOverdueReports.length} overdue report(s) but no registered users to notify.`);
+                        return; // Skips to next school
+                    }
+                    summaryEmailsSent++;
                     schoolUsers.forEach(user => {
-                        summaryEmailsSent++;
                         emailsPrepared++;
                         logs.push(`[OVERDUE SUMMARY] Email prepared for ${user.email} (${school.name}) with ${schoolOverdueReports.length} overdue report(s): ${schoolOverdueReports.map(r => `"${r.title}"`).join(', ')}.`);
                     });
@@ -92,25 +100,40 @@ const EmailAutomationSimulator: React.FC<EmailAutomationSimulatorProps> = ({ dat
         setSendResult(null);
 
         const overduePayload: { schoolId: string; reportIds: string[]; schoolName: string; reportTitles: string[] }[] = [];
+        const skippedSchools: string[] = [];
 
         schools.forEach(school => {
             const overdueReports = reports.filter(report => {
                 const submission = submissions.find(s => s.schoolId === school.id && s.reportId === report.id);
                 return getDisplayStatus(submission, report.deadline) === DisplayComplianceStatus.OVERDUE;
             });
-
-            if (overdueReports.length > 0) {
-                overduePayload.push({
-                    schoolId: school.id,
-                    schoolName: school.name,
-                    reportIds: overdueReports.map(r => r.id),
-                    reportTitles: overdueReports.map(r => r.title)
-                });
+            
+            if (overdueReports.length === 0) {
+                return; // No overdue reports for this school, so nothing to do.
             }
+
+            // At this point, we know the school has overdue reports. Now check for users.
+            const schoolUsers = users.filter(u => u.role === UserRole.SCHOOL && u.schoolName === school.name);
+            if (schoolUsers.length === 0) {
+                skippedSchools.push(school.name);
+                return; // Skip this school as it has overdue reports but no users.
+            }
+
+            // If we're here, school has overdue reports AND users. Add to payload.
+            overduePayload.push({
+                schoolId: school.id,
+                schoolName: school.name,
+                reportIds: overdueReports.map(r => r.id),
+                reportTitles: overdueReports.map(r => r.title)
+            });
         });
 
         if (overduePayload.length === 0) {
-            setSendResult({ type: 'info', message: 'No schools have overdue reports. No notices sent.' });
+            let message = 'No schools have overdue reports. No notices sent.';
+            if (skippedSchools.length > 0) {
+                message = `No notices sent. ${skippedSchools.length} school(s) with overdue reports were skipped because they have no registered users.`;
+            }
+            setSendResult({ type: 'info', message });
             setIsSending(false);
             return;
         }
@@ -120,8 +143,13 @@ const EmailAutomationSimulator: React.FC<EmailAutomationSimulatorProps> = ({ dat
         
         const schoolListPreview = overduePayload.slice(0, 5).map(p => `\n- ${p.schoolName} (${p.reportTitles.length} report(s))`).join('');
         const moreSchoolsMessage = overduePayload.length > 5 ? `\n...and ${overduePayload.length - 5} more school(s).` : '';
+        
+        let skippedMessage = '';
+        if (skippedSchools.length > 0) {
+            skippedMessage = `\n\nNote: ${skippedSchools.length} school(s) were also skipped because they have no registered users.`;
+        }
 
-        const confirmationMessage = `This will trigger an email to ${schoolCount} school(s) about ${totalReports} total overdue report(s). Do you want to proceed?\n\nPreview:${schoolListPreview}${moreSchoolsMessage}`;
+        const confirmationMessage = `This will trigger an email to ${schoolCount} school(s) about ${totalReports} total overdue report(s). Do you want to proceed?\n\nPreview:${schoolListPreview}${moreSchoolsMessage}${skippedMessage}`;
         
         if (window.confirm(confirmationMessage)) {
             try {
@@ -209,7 +237,7 @@ const EmailAutomationSimulator: React.FC<EmailAutomationSimulatorProps> = ({ dat
                         </div>
                         <div className="flex-grow overflow-y-auto bg-gray-900 text-white font-mono text-sm p-4 rounded-md">
                             {simulationLog.map((log, index) => (
-                                <p key={index} className="whitespace-pre-wrap leading-relaxed">{log || ' '}</p>
+                                <p key={index} className="whitespace-pre-wrap leading-relaxed">{log || ' '}</p>
                             ))}
                         </div>
                         <div className="mt-6 text-right">
