@@ -189,7 +189,7 @@ const SchoolDashboard: React.FC<SchoolDashboardProps> = ({ currentUser, data, on
             <tbody className="bg-white divide-y divide-gray-200">
               {schoolData.reportList.map(report => (
                 <tr key={report.id}>
-                  <td className="sticky left-0 bg-white px-3 sm:px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 border-r border-gray-200 truncate max-w-[180px]" title={report.title}>{report.title}</td>
+                  <td className="sticky left-0 bg-white px-3 sm:px-6 py-4 text-sm font-medium text-gray-900 border-r border-gray-200 max-w-[180px]" title={report.title}>{report.title}</td>
                   <td className="px-3 sm:px-6 py-4 text-sm text-gray-500">{report.focalPerson}</td>
                   <td className="px-3 sm:px-6 py-4 text-sm text-gray-500">
                     {isUrl(report.modeOfSubmission) ? (

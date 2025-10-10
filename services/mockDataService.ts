@@ -53,3 +53,5 @@ export const getSubmissions = () => fetchData<Submission[]>('getSubmissions');
 export const saveUsers = (updatedUsers: User[]) => saveData('saveUsers', updatedUsers);
 export const saveReports = (updatedReports: Report[]) => saveData('saveReports', updatedReports);
 export const saveSubmissions = (updatedSubmissions: Submission[]) => saveData('saveSubmissions', updatedSubmissions);
+
+export const sendManualReminders = (payload: { schoolId: string; reportIds: string[] }[]) => saveData('sendManualReminders', payload);

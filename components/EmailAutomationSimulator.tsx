@@ -2,6 +2,9 @@ import React, { useState } from 'react';
 import { AppData, DisplayComplianceStatus, UserRole, StoredComplianceStatus } from '../types';
 import { getDisplayStatus } from '../utils/complianceUtils';
 import { PaperAirplaneIcon } from './icons/DashboardIcons';
+import { sendManualReminders } from '../services/mockDataService';
+import Spinner from './Spinner';
+import { CheckCircleIcon, XCircleIcon } from './icons/StatusIcons';
 
 interface EmailAutomationSimulatorProps {
     data: AppData;
@@ -11,6 +14,8 @@ const EmailAutomationSimulator: React.FC<EmailAutomationSimulatorProps> = ({ dat
     const { users, schools, reports, submissions } = data;
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [simulationLog, setSimulationLog] = useState<string[]>([]);
+    const [isSending, setIsSending] = useState(false);
+    const [sendResult, setSendResult] = useState<{ type: 'success' | 'error' | 'info'; message: string } | null>(null);
 
     const runSimulation = () => {
         const now = new Date();
@@ -82,6 +87,59 @@ const EmailAutomationSimulator: React.FC<EmailAutomationSimulatorProps> = ({ dat
         setIsModalOpen(true);
     };
 
+    const handleSendOverdueNotices = async () => {
+        setIsSending(true);
+        setSendResult(null);
+
+        const overduePayload: { schoolId: string; reportIds: string[]; schoolName: string; reportTitles: string[] }[] = [];
+
+        schools.forEach(school => {
+            const overdueReports = reports.filter(report => {
+                const submission = submissions.find(s => s.schoolId === school.id && s.reportId === report.id);
+                return getDisplayStatus(submission, report.deadline) === DisplayComplianceStatus.OVERDUE;
+            });
+
+            if (overdueReports.length > 0) {
+                overduePayload.push({
+                    schoolId: school.id,
+                    schoolName: school.name,
+                    reportIds: overdueReports.map(r => r.id),
+                    reportTitles: overdueReports.map(r => r.title)
+                });
+            }
+        });
+
+        if (overduePayload.length === 0) {
+            setSendResult({ type: 'info', message: 'No schools have overdue reports. No notices sent.' });
+            setIsSending(false);
+            return;
+        }
+
+        const schoolCount = overduePayload.length;
+        const totalReports = overduePayload.reduce((sum, item) => sum + item.reportIds.length, 0);
+        
+        const schoolListPreview = overduePayload.slice(0, 5).map(p => `\n- ${p.schoolName} (${p.reportTitles.length} report(s))`).join('');
+        const moreSchoolsMessage = overduePayload.length > 5 ? `\n...and ${overduePayload.length - 5} more school(s).` : '';
+
+        const confirmationMessage = `This will trigger an email to ${schoolCount} school(s) about ${totalReports} total overdue report(s). Do you want to proceed?\n\nPreview:${schoolListPreview}${moreSchoolsMessage}`;
+        
+        if (window.confirm(confirmationMessage)) {
+            try {
+                const payloadForApi = overduePayload.map(({ schoolId, reportIds }) => ({ schoolId, reportIds }));
+                await sendManualReminders(payloadForApi);
+                setSendResult({ type: 'success', message: 'Overdue notices have been successfully queued for sending.' });
+            } catch (error) {
+                console.error("Failed to send manual reminders:", error);
+                setSendResult({ type: 'error', message: 'An error occurred while sending notices. Please check the console and try again.' });
+            } finally {
+                setIsSending(false);
+            }
+        } else {
+            setIsSending(false);
+            setSendResult({ type: 'info', message: 'Action cancelled.' });
+        }
+    };
+
 
     return (
         <div className="bg-white p-6 rounded-lg shadow-md">
@@ -93,8 +151,10 @@ const EmailAutomationSimulator: React.FC<EmailAutomationSimulatorProps> = ({ dat
                 <li><strong className="text-gray-800">Deadline Reminders:</strong> Sent daily to schools for any reports that are due the following day.</li>
                 <li><strong className="text-gray-800">Overdue Summaries:</strong> Sent every Monday morning, compiling a list of all reports that are currently overdue for each school.</li>
             </ul>
+
+            <h3 className="text-lg font-semibold mb-2 text-gray-800">Automation Simulation</h3>
             <p className="mb-4 text-gray-600">
-                Click the button below to run a simulation based on the current data and see which emails would be dispatched right now.
+                Click the button below to run a simulation based on the current data and see which automated emails would be dispatched right now.
             </p>
             <button 
                 onClick={runSimulation} 
@@ -103,6 +163,42 @@ const EmailAutomationSimulator: React.FC<EmailAutomationSimulatorProps> = ({ dat
                 <PaperAirplaneIcon className="w-5 h-5" />
                 <span>Run Email Dispatch Simulation</span>
             </button>
+
+            <div className="mt-8 pt-6 border-t border-gray-200">
+                <h3 className="text-lg font-semibold mb-2 text-gray-800">Manual Actions</h3>
+                <p className="mb-4 text-gray-600">
+                    Instantly send email notices to all schools with overdue reports. This action bypasses the regular Monday schedule.
+                </p>
+                <div className="flex items-center gap-4 flex-wrap">
+                    <button 
+                        onClick={handleSendOverdueNotices} 
+                        disabled={isSending}
+                        className="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 flex items-center gap-2 disabled:bg-red-400 disabled:cursor-not-allowed"
+                    >
+                        {isSending ? (
+                            <>
+                                <Spinner className="h-5 w-5 border-b-2 border-white" />
+                                <span>Sending...</span>
+                            </>
+                        ) : (
+                            <>
+                                <PaperAirplaneIcon className="w-5 h-5" />
+                                <span>Send Overdue Notices Now</span>
+                            </>
+                        )}
+                    </button>
+                    {sendResult && (
+                        <div className={`flex items-center gap-2 text-sm ${
+                            sendResult.type === 'success' ? 'text-green-600' :
+                            sendResult.type === 'error' ? 'text-red-600' : 'text-gray-600'
+                        }`}>
+                            {sendResult.type === 'success' && <CheckCircleIcon className="w-5 h-5" />}
+                            {sendResult.type === 'error' && <XCircleIcon className="w-5 h-5" />}
+                            <span>{sendResult.message}</span>
+                        </div>
+                    )}
+                </div>
+            </div>
 
             {isModalOpen && (
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
@@ -113,7 +209,7 @@ const EmailAutomationSimulator: React.FC<EmailAutomationSimulatorProps> = ({ dat
                         </div>
                         <div className="flex-grow overflow-y-auto bg-gray-900 text-white font-mono text-sm p-4 rounded-md">
                             {simulationLog.map((log, index) => (
-                                <p key={index} className="whitespace-pre-wrap leading-relaxed">{log || '\u00A0'}</p>
+                                <p key={index} className="whitespace-pre-wrap leading-relaxed">{log || ' '}</p>
                             ))}
                         </div>
                         <div className="mt-6 text-right">
