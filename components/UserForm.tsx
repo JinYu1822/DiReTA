@@ -16,7 +16,7 @@ const UserForm: React.FC<UserFormProps> = ({ userToEdit, onSave, onCancel, schoo
         name: '',
         email: '',
         role: UserRole.SCHOOL,
-        schoolName: '',
+        schoolNames: [],
         assignedReportIds: []
     });
     const [password, setPassword] = useState('');
@@ -30,7 +30,7 @@ const UserForm: React.FC<UserFormProps> = ({ userToEdit, onSave, onCancel, schoo
             setFormData({ ...userToEdit });
         } else {
             setFormData({
-                name: '', email: '', role: UserRole.SCHOOL, schoolName: schools[0]?.name || '', assignedReportIds: []
+                name: '', email: '', role: UserRole.SCHOOL, schoolNames: schools[0] ? [schools[0].name] : [], assignedReportIds: []
             });
         }
         setPassword('');
@@ -43,13 +43,17 @@ const UserForm: React.FC<UserFormProps> = ({ userToEdit, onSave, onCancel, schoo
         
         setFormData(prev => {
             const newState = { ...prev, [name]: value };
-            // Reset assignments when role changes
             if(name === 'role') {
-                newState.schoolName = value === UserRole.SCHOOL ? (schools[0]?.name || '') : '';
+                newState.schoolNames = value === UserRole.SCHOOL ? (schools[0] ? [schools[0].name] : []) : [];
                 newState.assignedReportIds = [];
             }
             return newState;
         });
+    };
+
+    const handleSchoolSelection = (e: React.ChangeEvent<HTMLSelectElement>) => {
+        const selectedNames = [...e.target.selectedOptions].map(option => option.value);
+        setFormData(prev => ({...prev, schoolNames: selectedNames }));
     };
 
     const handleReportSelection = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -72,11 +76,10 @@ const UserForm: React.FC<UserFormProps> = ({ userToEdit, onSave, onCancel, schoo
             setError('This email address is already in use.');
             return false;
         }
-        if (formData.role === UserRole.SCHOOL && !formData.schoolName) {
-            setError('Please assign a school for this user.');
+        if (formData.role === UserRole.SCHOOL && (!formData.schoolNames || formData.schoolNames.length === 0)) {
+            setError('Please assign at least one school for this user.');
             return false;
         }
-        // Password validation
         if (!userToEdit && !password) {
             setError('Password is required for new users.');
             return false;
@@ -98,10 +101,7 @@ const UserForm: React.FC<UserFormProps> = ({ userToEdit, onSave, onCancel, schoo
                     finalUserData.password = password;
                 }
                 await onSave(finalUserData as User);
-                // onSave will close the modal on success, nothing more to do here.
             } catch (error) {
-                // The global notification in App.tsx will show the error.
-                // The form remains open for the user to try again.
                 console.error("Failed to save user in form:", error);
             } finally {
                 setIsSaving(false);
@@ -132,8 +132,8 @@ const UserForm: React.FC<UserFormProps> = ({ userToEdit, onSave, onCancel, schoo
                     </div>
                     {formData.role === UserRole.SCHOOL && (
                          <div>
-                            <label className="block text-sm font-medium text-gray-700">Assign School</label>
-                            <select name="schoolName" value={formData.schoolName} onChange={handleChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 bg-white">
+                            <label className="block text-sm font-medium text-gray-700">Assign School (Ctrl/Cmd to select multiple)</label>
+                            <select name="schoolNames" multiple value={formData.schoolNames} onChange={handleSchoolSelection} className="mt-1 block w-full h-32 border border-gray-300 rounded-md shadow-sm py-2 px-3 bg-white">
                                 {schools.map(school => <option key={school.id} value={school.name}>{school.name}</option>)}
                             </select>
                         </div>

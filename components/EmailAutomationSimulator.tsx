@@ -35,10 +35,10 @@ const EmailAutomationSimulator: React.FC<EmailAutomationSimulatorProps> = ({ dat
                 schools.forEach(school => {
                     const submission = submissions.find(s => s.schoolId === school.id && s.reportId === report.id);
                     if (!submission || (submission.status !== StoredComplianceStatus.SUBMITTED && submission.status !== StoredComplianceStatus.NOT_APPLICABLE)) {
-                        const schoolUsers = users.filter(u => u.role === UserRole.SCHOOL && u.schoolName === school.name);
+                        const schoolUsers = users.filter(u => u.role === UserRole.SCHOOL && u.schoolNames?.includes(school.name));
                         if (schoolUsers.length === 0) {
                             logs.push(`[SKIPPED] ${school.name} has a pending report ("${report.title}") but no registered users to notify.`);
-                            return; // Skips to next school in forEach
+                            return;
                         }
                         schoolUsers.forEach(user => {
                             emailsPrepared++;
@@ -48,14 +48,14 @@ const EmailAutomationSimulator: React.FC<EmailAutomationSimulatorProps> = ({ dat
                 });
             });
         }
-        if (logs.length === 1) { // Only the header was added
+        if (logs.length === 1) {
             logs.push("No pending reports are due tomorrow. No deadline reminders will be sent.");
         }
 
 
         // --- 2. Overdue Summaries ---
-        const isMonday = now.getDay() === 1; // 0=Sun, 1=Mon
-        logs.push(''); // Separator
+        const isMonday = now.getDay() === 1;
+        logs.push('');
         logs.push(`--- Checking for Overdue Report Summaries (Today is ${now.toLocaleDateString('en-US', { weekday: 'long' })}) ---`);
 
         if (isMonday) {
@@ -67,10 +67,10 @@ const EmailAutomationSimulator: React.FC<EmailAutomationSimulatorProps> = ({ dat
                 });
 
                 if (schoolOverdueReports.length > 0) {
-                    const schoolUsers = users.filter(u => u.role === UserRole.SCHOOL && u.schoolName === school.name);
+                    const schoolUsers = users.filter(u => u.role === UserRole.SCHOOL && u.schoolNames?.includes(school.name));
                     if (schoolUsers.length === 0) {
                         logs.push(`[SKIPPED] ${school.name} has ${schoolOverdueReports.length} overdue report(s) but no registered users to notify.`);
-                        return; // Skips to next school
+                        return;
                     }
                     summaryEmailsSent++;
                     schoolUsers.forEach(user => {
@@ -109,17 +109,15 @@ const EmailAutomationSimulator: React.FC<EmailAutomationSimulatorProps> = ({ dat
             });
             
             if (overdueReports.length === 0) {
-                return; // No overdue reports for this school, so nothing to do.
+                return;
             }
 
-            // At this point, we know the school has overdue reports. Now check for users.
-            const schoolUsers = users.filter(u => u.role === UserRole.SCHOOL && u.schoolName === school.name);
+            const schoolUsers = users.filter(u => u.role === UserRole.SCHOOL && u.schoolNames?.includes(school.name));
             if (schoolUsers.length === 0) {
                 skippedSchools.push(school.name);
-                return; // Skip this school as it has overdue reports but no users.
+                return;
             }
 
-            // If we're here, school has overdue reports AND users. Add to payload.
             overduePayload.push({
                 schoolId: school.id,
                 schoolName: school.name,

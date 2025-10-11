@@ -7,12 +7,14 @@ import SchoolDashboard from './components/SchoolDashboard';
 import Header from './components/Header';
 import Spinner from './components/Spinner';
 import Notification from './components/Notification';
+import SchoolSelector from './components/SchoolSelector';
 import { ExclamationTriangleIcon } from './components/icons/StatusIcons';
 import { ArrowPathIcon } from './components/icons/DashboardIcons';
 
 
 const App: React.FC = () => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [selectedSchoolName, setSelectedSchoolName] = useState<string | null>(null);
   const [users, setUsers] = useState<User[]>([]);
   const [schools, setSchools] = useState<School[]>([]);
   const [reports, setReports] = useState<Report[]>([]);
@@ -30,23 +32,28 @@ const App: React.FC = () => {
     }
     setError(null);
     try {
-      // Fetch raw data which might have mismatched property names from Google Sheets headers.
-      const [fetchedUsers, fetchedSchools, rawReports, rawSubmissions] = await Promise.all([
+      const [rawUsers, fetchedSchools, rawReports, rawSubmissions] = await Promise.all([
         getUsers(),
         getSchools(),
         getReports(),
         getSubmissions(),
       ]);
 
-      // Sanitize and map the raw data to the expected TypeScript interfaces.
-      // This handles the 'reportID' vs 'id'/'reportId' casing mismatch.
+      const fetchedUsers: User[] = (rawUsers as any[]).map(u => ({
+        ...u,
+        schoolNames: typeof u.schoolName === 'string' 
+            ? u.schoolName.split(',').map((s: string) => s.trim()).filter(Boolean) 
+            : (Array.isArray(u.schoolNames) ? u.schoolNames : []),
+        schoolName: undefined,
+      }));
+
       const fetchedReports: Report[] = (rawReports as any[]).map(r => ({
         id: r.reportID || r.id,
         title: r.title,
         focalPerson: r.focalPerson,
         deadline: r.deadline,
         modeOfSubmission: r.modeOfSubmission,
-      })).filter(r => r.id); // Filter out any malformed reports without an ID.
+      })).filter(r => r.id);
 
       const fetchedSubmissions: Submission[] = (rawSubmissions as any[]).map(s => ({
         schoolId: s.schoolId,
@@ -54,22 +61,27 @@ const App: React.FC = () => {
         status: s.status,
         submissionDate: s.submissionDate,
         remarks: s.remarks,
-      })).filter(s => s.schoolId && s.reportId); // Filter out any malformed submissions.
+      })).filter(s => s.schoolId && s.reportId);
 
       setUsers(fetchedUsers);
       setSchools(fetchedSchools);
       setReports(fetchedReports);
       setSubmissions(fetchedSubmissions);
 
-      // Check for logged in user in sessionStorage
       const loggedInUserId = sessionStorage.getItem('loggedInUserId');
       if (loggedInUserId) {
           const user = fetchedUsers.find((u) => u.id === loggedInUserId);
           if (user) {
               setCurrentUser(user);
+              if (user.role === UserRole.SCHOOL) {
+                  const loggedInSchoolName = sessionStorage.getItem('selectedSchoolName');
+                  if (loggedInSchoolName && user.schoolNames?.includes(loggedInSchoolName)) {
+                      setSelectedSchoolName(loggedInSchoolName);
+                  }
+              }
           } else {
-              // If user is not found (e.g., deleted), clear session
               sessionStorage.removeItem('loggedInUserId');
+              sessionStorage.removeItem('selectedSchoolName');
           }
       }
     } catch (err) {
@@ -89,13 +101,13 @@ const App: React.FC = () => {
     pollTimeoutRef.current = window.setTimeout(async () => {
         console.log('Polling for new data...');
         await fetchData(true);
-        schedulePoll(); // Schedules the next one for 30s
+        schedulePoll();
     }, delay);
   }, [fetchData]);
   
   useEffect(() => {
     fetchData().then(() => {
-        schedulePoll(); // Start polling after initial fetch succeeds
+        schedulePoll();
     });
     return () => {
         if (pollTimeoutRef.current) {
@@ -104,29 +116,40 @@ const App: React.FC = () => {
     }
   }, [fetchData, schedulePoll]);
 
+  const handleSchoolSelect = (schoolName: string) => {
+    setSelectedSchoolName(schoolName);
+    sessionStorage.setItem('selectedSchoolName', schoolName);
+  };
 
   const handleLogin = (userId: string) => {
     const user = users.find((u) => u.id === userId);
     if (user) {
       sessionStorage.setItem('loggedInUserId', user.id);
       setCurrentUser(user);
+      if (user.role === UserRole.SCHOOL) {
+        if (user.schoolNames && user.schoolNames.length === 1) {
+          handleSchoolSelect(user.schoolNames[0]);
+        }
+      }
     }
   };
 
   const handleLogout = () => {
     sessionStorage.removeItem('loggedInUserId');
+    sessionStorage.removeItem('selectedSchoolName');
     setCurrentUser(null);
+    setSelectedSchoolName(null);
   };
   
   const handleManualRefresh = async () => {
-    if (pollTimeoutRef.current) clearTimeout(pollTimeoutRef.current); // Pause polling
+    if (pollTimeoutRef.current) clearTimeout(pollTimeoutRef.current);
     console.log('Manual data refresh triggered.');
-    await fetchData(false); // Use false to show the main loading spinner
-    schedulePoll(30000); // Reschedule polling
+    await fetchData(false);
+    schedulePoll(30000);
   };
 
   const updateSubmissions = async (updatedSubmissions: Submission[]) => {
-    if (pollTimeoutRef.current) clearTimeout(pollTimeoutRef.current); // Pause polling
+    if (pollTimeoutRef.current) clearTimeout(pollTimeoutRef.current);
     setIsSaving(true);
     setNotification(null);
     try {
@@ -136,16 +159,16 @@ const App: React.FC = () => {
     } catch (error) {
         setNotification({ message: 'Failed to save submissions. Data has been refreshed.', type: 'error' });
         console.error("Failed to save submissions:", error);
-        fetchData(true); // Refresh data on failure to sync with server
-        throw error; // Re-throw to let the component know about the failure
+        fetchData(true);
+        throw error;
     } finally {
         setIsSaving(false);
-        schedulePoll(5000); // Reschedule polling, with a short delay to get confirmation
+        schedulePoll(5000);
     }
   };
 
   const updateUsers = async (updatedUsers: User[]) => {
-    if (pollTimeoutRef.current) clearTimeout(pollTimeoutRef.current); // Pause polling
+    if (pollTimeoutRef.current) clearTimeout(pollTimeoutRef.current);
     setIsSaving(true);
     setNotification(null);
     try {
@@ -159,12 +182,12 @@ const App: React.FC = () => {
       throw error;
     } finally {
       setIsSaving(false);
-      schedulePoll(5000); // Reschedule polling, with a short delay to get confirmation
+      schedulePoll(5000);
     }
   };
   
   const updateReports = async (updatedReports: Report[]) => {
-    if (pollTimeoutRef.current) clearTimeout(pollTimeoutRef.current); // Pause polling
+    if (pollTimeoutRef.current) clearTimeout(pollTimeoutRef.current);
     setIsSaving(true);
     setNotification(null);
      try {
@@ -178,7 +201,7 @@ const App: React.FC = () => {
       throw error;
     } finally {
       setIsSaving(false);
-      schedulePoll(5000); // Reschedule polling, with a short delay to get confirmation
+      schedulePoll(5000);
     }
   };
 
@@ -211,6 +234,11 @@ const App: React.FC = () => {
     return <LoginScreen users={users} onLogin={handleLogin} />;
   }
   
+  if (currentUser.role === UserRole.SCHOOL && (currentUser.schoolNames?.length ?? 0) > 1 && !selectedSchoolName) {
+    const userSchools = schools.filter(s => currentUser.schoolNames?.includes(s.name));
+    return <SchoolSelector user={currentUser} schools={userSchools} onSelect={handleSchoolSelect} onLogout={handleLogout} />;
+  }
+  
   const data = { users, schools, reports, submissions };
 
   return (
@@ -223,7 +251,12 @@ const App: React.FC = () => {
             onClose={() => setNotification(null)}
           />
         )}
-        <Header user={currentUser} onLogout={handleLogout} />
+        <Header 
+          user={currentUser} 
+          onLogout={handleLogout}
+          selectedSchoolName={selectedSchoolName}
+          onSwitchSchool={handleSchoolSelect}
+        />
         <main className="p-4 sm:p-6 lg:p-8">
           {currentUser.role === UserRole.ADMIN || currentUser.role === UserRole.MODERATOR ? (
             <AdminDashboard 
@@ -239,6 +272,7 @@ const App: React.FC = () => {
                 currentUser={currentUser} 
                 data={data} 
                 onRefreshData={handleManualRefresh}
+                selectedSchoolName={selectedSchoolName}
             />
           )}
         </main>

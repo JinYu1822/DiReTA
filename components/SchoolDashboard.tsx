@@ -9,6 +9,7 @@ interface SchoolDashboardProps {
   currentUser: User;
   data: AppData;
   onRefreshData: () => Promise<void>;
+  selectedSchoolName: string | null;
 }
 
 const StatusBadge: React.FC<{ status: DisplayComplianceStatus }> = ({ status }) => {
@@ -29,9 +30,9 @@ const StatusBadge: React.FC<{ status: DisplayComplianceStatus }> = ({ status }) 
   );
 };
 
-const SchoolDashboard: React.FC<SchoolDashboardProps> = ({ currentUser, data, onRefreshData }) => {
+const SchoolDashboard: React.FC<SchoolDashboardProps> = ({ currentUser, data, onRefreshData, selectedSchoolName }) => {
   const { schools, reports, submissions } = data;
-  const school = schools.find(s => s.name === currentUser.schoolName);
+  const school = schools.find(s => s.name === selectedSchoolName);
 
   const isUrl = (text: string) => {
     if (typeof text !== 'string') return false;
@@ -102,7 +103,7 @@ const SchoolDashboard: React.FC<SchoolDashboardProps> = ({ currentUser, data, on
   }, [school, reports, submissions]);
 
   if (!school) {
-    return <div className="text-red-500">Error: School data not found for user.</div>;
+    return <div className="text-center p-8 text-gray-600">Please select a school to view its dashboard.</div>;
   }
 
   return (

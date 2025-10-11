@@ -34,35 +34,35 @@ const UserManagement: React.FC<UserManagementProps> = ({ currentUser, users, sch
         const userToDelete = users.find(u => u.id === userId);
         if (!userToDelete) return;
 
-        // Prevent deleting the last user for a school
-        if (userToDelete.role === UserRole.SCHOOL && userToDelete.schoolName) {
-            const schoolUsers = users.filter(
-                u => u.role === UserRole.SCHOOL && u.schoolName === userToDelete.schoolName
-            );
-            if (schoolUsers.length === 1) {
-                alert(`Cannot remove ${userToDelete.name}. This is the last user assigned to ${userToDelete.schoolName}.\n\nPlease assign another user to this school before removing this one.`);
+        if (userToDelete.role === UserRole.SCHOOL && userToDelete.schoolNames?.length) {
+            const schoolsThatWouldBeEmpty = userToDelete.schoolNames.filter(schoolName => {
+                const schoolUsers = users.filter(
+                    u => u.schoolNames?.includes(schoolName)
+                );
+                return schoolUsers.length === 1;
+            });
+
+            if (schoolsThatWouldBeEmpty.length > 0) {
+                alert(`Cannot remove ${userToDelete.name}. This is the last user for the following school(s): ${schoolsThatWouldBeEmpty.join(', ')}.\n\nPlease assign another user to these schools before removing this one.`);
                 return;
             }
         }
 
+
         if (window.confirm(`Are you sure you want to remove the user "${userToDelete.name}"? This action cannot be undone.`)) {
-             // We don't need a try/catch here because if it fails, the global handler will
-             // show a notification and refresh the data, reverting the optimistic delete.
             onUsersUpdate(users.filter(u => u.id !== userId));
         }
     };
 
     const handleSaveUser = async (userToSave: User) => {
-        // This function is passed to UserForm's onSave prop and is expected to throw on failure.
         const userWithId = userToSave.id ? userToSave : { ...userToSave, id: `user-${new Date().getTime()}` };
 
         const updatedUsers = editingUser
             ? users.map(u => (u.id === userWithId.id ? userWithId : u))
             : [...users, userWithId];
 
-        await onUsersUpdate(updatedUsers); // This will throw on error, handled by UserForm
+        await onUsersUpdate(updatedUsers);
 
-        // This part only runs on success
         setIsModalOpen(false);
         setEditingUser(null);
     };
@@ -98,7 +98,9 @@ const UserManagement: React.FC<UserManagementProps> = ({ currentUser, users, sch
                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{user.email}</td>
                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{user.role}</td>
                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                    {user.schoolName || (user.assignedReportIds ? `${user.assignedReportIds.length} Reports` : '—')}
+                                    {user.role === UserRole.SCHOOL 
+                                        ? user.schoolNames?.join(', ') 
+                                        : (user.assignedReportIds ? `${user.assignedReportIds.length} Reports` : '—')}
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-right space-x-2">
                                     <button onClick={() => handleEditUser(user)} className="text-blue-600 hover:text-blue-900" title="Edit User">
